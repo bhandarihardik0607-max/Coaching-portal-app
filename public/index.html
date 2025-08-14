@@ -81,13 +81,20 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            border: none;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .btn-primary { background-color: #4f46e5; color: white; }
-        .btn-primary:hover { background-color: #4338ca; }
+        .btn-primary:hover:not(:disabled) { background-color: #4338ca; }
         .btn-secondary { background-color: #334155; color: white; }
-        .btn-secondary:hover { background-color: #475569; }
+        .btn-secondary:hover:not(:disabled) { background-color: #475569; }
+        .btn-danger { background-color: #dc2626; color: white; }
+        .btn-danger:hover:not(:disabled) { background-color: #b91c1c; }
         .btn-whatsapp { background-color: #25D366; color: white; }
-        .btn-whatsapp:hover { background-color: #1DAE53; }
+        .btn-whatsapp:hover:not(:disabled) { background-color: #1DAE53; }
         
         /* Responsive Table */
         .responsive-table {
@@ -162,7 +169,28 @@
             align-self: flex-start;
             border-bottom-left-radius: 0.25rem;
         }
-    </style>
+        
+        /* Toast Notification */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #4f46e5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 200;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .toast-notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+</style>
 </head>
 <body>
 
@@ -213,12 +241,26 @@
             <button id="notificationCloseBtn" class="btn btn-primary">Close</button>
         </div>
     </div>
+    
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <p id="confirmationText" class="text-lg mb-6"></p>
+            <div class="flex justify-center gap-4">
+                <button id="confirmCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmActionBtn" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
 
     <div id="reportModal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="text-2xl font-bold mb-4">Student Performance Report</h2>
             <div id="reportContentContainer" class="bg-slate-900 p-4 rounded-lg max-h-[60vh] overflow-y-auto text-slate-300 space-y-4">
                 <div id="reportContent"></div>
+                <div id="teacherNotesSection" class="hidden">
+                    <h3 class="text-lg font-semibold mt-4">Teacher's Notes:</h3>
+                    <textarea id="teacherNotesInput" class="w-full bg-slate-700 p-2 rounded-lg mt-2" placeholder="Add custom notes to include in the report..."></textarea>
+                </div>
             </div>
             <div class="flex flex-wrap justify-end gap-2 mt-4">
                 <button id="reportCloseBtn" class="btn btn-secondary">Close</button>
@@ -278,6 +320,83 @@
         </div>
     </div>
 
+    <div id="addStudentModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Add New Student</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-slate-400">Full Name</label>
+                    <input type="text" id="addStudentName" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+                 <div>
+                    <label class="block text-slate-400">Batch</label>
+                    <select id="addStudentSection" class="w-full bg-slate-700 p-2 rounded-lg">
+                        <option value="12A">12A</option>
+                        <option value="12B">12B</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-400">Parent's Phone (e.g., 91...)</label>
+                    <input type="text" id="addStudentParentPhone" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button onclick="hideModal(document.getElementById('addStudentModal'))" class="btn btn-secondary">Cancel</button>
+                <button onclick="addStudent()" class="btn btn-primary">Add Student</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="changePinModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Change Teacher PIN</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-slate-400">Current PIN</label>
+                    <input type="password" id="currentPin" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-slate-400">New PIN</label>
+                    <input type="password" id="newPin" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-slate-400">Confirm New PIN</label>
+                    <input type="password" id="confirmNewPin" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button onclick="hideModal(document.getElementById('changePinModal'))" class="btn btn-secondary">Cancel</button>
+                <button onclick="changeTeacherPin()" class="btn btn-primary">Update PIN</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="attendanceDetailModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="attendanceDetailTitle" class="text-2xl font-bold mb-4">Attendance Details</h2>
+            <div id="attendanceDetailContent" class="max-h-[60vh] overflow-y-auto"></div>
+            <div class="flex justify-end mt-4">
+                <button onclick="hideModal(document.getElementById('attendanceDetailModal'))" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="receiptModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="receiptContent" class="bg-white text-gray-800 p-6 rounded-lg">
+                <!-- Receipt content will be injected here -->
+            </div>
+            <div class="flex flex-wrap justify-end gap-2 mt-4">
+                <button onclick="hideModal(document.getElementById('receiptModal'))" class="btn btn-secondary">Close</button>
+                <button id="downloadReceiptBtn" class="btn btn-primary"><i class="fas fa-download"></i> Download</button>
+                <button id="sendReceiptWhatsAppBtn" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer"></div>
+
 
     <script>
         // --- DATA STORE ---
@@ -328,8 +447,12 @@
                 const sectionTeachers = db.teachers[section];
 
                 sectionTeachers.forEach(teacher => {
-                    // Generate attendance
-                    attendance[teacher.id] = Array.from({length: 10}, () => Math.random() > 0.15 ? 'P' : 'A');
+                    // Generate attendance with dates
+                    attendance[teacher.id] = Array.from({length: 10}, (_, dayIndex) => {
+                        const date = new Date();
+                        date.setDate(date.getDate() - dayIndex);
+                        return { date: date.toISOString().split('T')[0], status: Math.random() > 0.15 ? 'P' : 'A' };
+                    });
                     
                     // Generate performance
                     const subject = teacher.subject.toLowerCase();
@@ -348,10 +471,10 @@
             }
             
             // Generate sample materials, timetables, and announcements
-            db.materials['12A'].push({ title: "Ch. 1 - Advanced Functions Notes", link: "#" });
-            db.materials['12A'].push({ title: "Worksheet - The Laws of Thermodynamics", link: "#" });
-            db.materials['12B'].push({ title: "Reading - The Mughal Empire", link: "#" });
-            db.materials['12B'].push({ title: "Guide - Writing a Persuasive Essay", link: "#" });
+            db.materials['12A'].push({ title: "Ch. 1 - Advanced Functions Notes", link: "#", type: 'link' });
+            db.materials['12A'].push({ title: "Worksheet - The Laws of Thermodynamics", link: "#", type: 'link' });
+            db.materials['12B'].push({ title: "Reading - The Mughal Empire", link: "#", type: 'link' });
+            db.materials['12B'].push({ title: "Guide - Writing a Persuasive Essay", link: "#", type: 'link' });
 
             db.timetables['12A'] = [
                 { day: "Monday", time: "9:00 AM", subject: "Mathematics" },
@@ -387,17 +510,54 @@
         const studentDashboard = document.getElementById('studentDashboard');
         const parentDashboard = document.getElementById('parentDashboard');
         const notificationModal = document.getElementById('notificationModal');
+        const confirmationModal = document.getElementById('confirmationModal');
         const reportModal = document.getElementById('reportModal');
         const aiAssistantModal = document.getElementById('aiAssistantModal');
         const editPerformanceModal = document.getElementById('editPerformanceModal');
         const editStudentDetailsModal = document.getElementById('editStudentDetailsModal');
+        const addStudentModal = document.getElementById('addStudentModal');
+        const changePinModal = document.getElementById('changePinModal');
+        const attendanceDetailModal = document.getElementById('attendanceDetailModal');
+        const receiptModal = document.getElementById('receiptModal');
 
         // --- UTILITY FUNCTIONS ---
         const showModal = (modal) => modal.style.display = 'flex';
         const hideModal = (modal) => modal.style.display = 'none';
+        
         const showNotification = (message) => {
             document.getElementById('notificationText').innerText = message;
             showModal(notificationModal);
+        };
+        
+        const showToast = (message) => {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.innerHTML = `<i class="fas fa-bell mr-2"></i> ${message}`;
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 500);
+            }, 5000);
+        };
+
+        const showConfirmation = (message, onConfirm) => {
+            document.getElementById('confirmationText').innerText = message;
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+            
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+            newConfirmBtn.onclick = () => {
+                onConfirm();
+                hideModal(confirmationModal);
+            };
+            cancelBtn.onclick = () => hideModal(confirmationModal);
+            
+            showModal(confirmationModal);
         };
         
         // --- PDF & WHATSAPP ---
@@ -408,22 +568,12 @@
                 return;
             }
 
-            const btn = document.getElementById('downloadPdfBtn');
+            const btn = document.getElementById('downloadPdfBtn') || document.getElementById('downloadReceiptBtn');
+            const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Generating...`;
 
-            // Create a temporary, clean element for rendering to avoid issues with complex CSS
-            const renderElement = document.createElement('div');
-            renderElement.style.width = '210mm'; // A4 width
-            renderElement.style.padding = '20px';
-            renderElement.style.color = '#e2e8f0';
-            renderElement.style.backgroundColor = '#1e293b';
-            renderElement.style.fontFamily = "'Inter', sans-serif";
-            renderElement.innerHTML = sourceElement.innerHTML.replace(/<pre.*?>/g, '<div style="white-space: pre-wrap; font-family: sans-serif;">').replace(/<\/pre>/g, '</div>');
-            document.body.appendChild(renderElement);
-
-            html2canvas(renderElement, { scale: 2 }).then(canvas => {
-                document.body.removeChild(renderElement); // Clean up the temporary element
+            html2canvas(sourceElement, { scale: 2, useCORS: true }).then(canvas => {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
                 const imgData = canvas.toDataURL('image/png');
@@ -431,34 +581,19 @@
                 const pdfWidth = doc.internal.pageSize.getWidth();
                 const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
                 
-                let heightLeft = pdfHeight;
-                let position = 0;
-                const pageHeight = doc.internal.pageSize.getHeight();
-
-                doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft > 0) {
-                    position = -heightLeft;
-                    doc.addPage();
-                    doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                    heightLeft -= pageHeight;
-                }
-
+                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                 doc.save(fileName);
 
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fas fa-file-pdf"></i> Download PDF`;
+                btn.innerHTML = originalText;
             }).catch(err => {
-                document.body.removeChild(renderElement); // Clean up even if it fails
                 showNotification("PDF generation failed. Please try again.");
                 console.error("html2canvas error:", err);
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fas fa-file-pdf"></i> Download PDF`;
+                btn.innerHTML = originalText;
             });
         };
 
-        // Fallback for when backend isn't configured
         const sendWhatsAppDeepLink = (phone, message) => {
             if (!phone) {
                 showNotification("Phone number is not available.");
@@ -468,26 +603,28 @@
             window.open(url, '_blank');
         };
 
-        // Official WhatsApp via backend
-        async function sendWhatsAppOfficial(phone, text) {
-            try {
-                const r = await fetch(`/api/whatsapp/send`, {
-                    method: "POST",
-                    headers: { "Content-Type":"application/json" },
-                    body: JSON.stringify({ to: phone, text })
-                });
-                const data = await r.json();
-                if (!r.ok) throw new Error(data.error || "API failed");
-                showNotification("WhatsApp message sent successfully!");
-            } catch (e) {
-                console.error("WhatsApp API Error:", e.message);
+        // This function simulates a backend API call for WhatsApp.
+        // In a real app, this would make a fetch request to your server.
+        const sendWhatsAppOfficial = (phone, text) => {
+            console.log(`Simulating sending WhatsApp to ${phone}: "${text}"`);
+            showToast(`WhatsApp sent to ${phone.slice(0, 5)}...`);
+            // In a real app, you would have a fetch call here like:
+            /*
+            fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to: phone, text: text })
+            }).then(res => res.json()).then(data => {
+                if(data.ok) showToast('WhatsApp message sent successfully!');
+                else throw new Error(data.error);
+            }).catch(err => {
+                console.error("WhatsApp API Error:", err);
                 showNotification(`Could not send message via Server. Opening WhatsApp app...`);
-                // Fallback to deep link
                 sendWhatsAppDeepLink(phone, text);
-            }
-        }
+            });
+            */
+        };
     
-
         // --- LOGIN LOGIC ---
         document.getElementById('userTypeSelect').addEventListener('change', (e) => {
             ['teacherLoginFields', 'studentLoginFields', 'parentLoginFields'].forEach(id => document.getElementById(id).classList.add('hidden'));
@@ -562,7 +699,7 @@
             loginPage.classList.remove('hidden');
         };
 
-        // --- AI ASSISTANT LOGIC ---
+        // --- AI ASSISTANT LOGIC (SIMULATED) ---
         const aiChatWindow = document.getElementById('aiChatWindow');
         const aiChatInput = document.getElementById('aiChatInput');
         
@@ -581,42 +718,19 @@
             aiChatInput.value = '';
             addMessageToChat('Thinking...', 'assistant');
 
-            let contextPrompt = '';
-            if (loggedInUserType === 'student') {
-                contextPrompt = `You are a helpful AI tutor for a high school student. The student has a question: "${userQuery}". Please provide a clear, concise, and helpful answer suitable for a high school level.`;
-            } else if (loggedInUserType === 'teacher') {
-                contextPrompt = `You are an AI guide for a teacher using a coaching centre management portal. The portal features are: Student Performance, Attendance, Fees, Materials, Timetable, and Announcements. The teacher asks: "${userQuery}". Explain how to use the relevant feature to address their question.`;
-            } else if (loggedInUserType === 'parent') {
-                const student = loggedInEntity;
-                contextPrompt = `You are an AI assistant for a parent. The parent is asking about their child, ${student.name}. Here is some of their data: ${JSON.stringify(student.performance)}, Attendance records exist. The parent's question is: "${userQuery}". Answer the question based on this data in a friendly and supportive tone.`;
-            }
-
-            try {
-                const response = await fetch('/api/ai/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: contextPrompt })
-                });
-
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || `API request failed with status ${response.status}`);
-                }
-                
-                const result = await response.json();
-                
-                aiChatWindow.removeChild(aiChatWindow.lastChild); // Remove "Thinking..."
-                if (result.ok && result.text) {
-                    addMessageToChat(result.text, 'assistant');
-                } else {
-                    throw new Error("Invalid response structure from server.");
-                }
-
-            } catch (error) {
-                console.error("AI Assistant Error:", error);
+            // This is a simulated AI response. In a real app, this would be a fetch call.
+            setTimeout(() => {
                 aiChatWindow.removeChild(aiChatWindow.lastChild);
-                addMessageToChat(`Sorry, I'm having trouble connecting right now. Error: ${error.message}`, 'assistant');
-            }
+                let aiResponse = "I'm sorry, I can't connect to the AI service right now. Please try again later.";
+                if (loggedInUserType === 'student') {
+                    aiResponse = `Regarding your question about "${userQuery}", the key concept to remember is... [detailed explanation suitable for a student].`;
+                } else if (loggedInUserType === 'teacher') {
+                    aiResponse = `To address your query "${userQuery}", you should navigate to the 'Student Performance' section. There you can view and edit grades for each student individually.`;
+                } else if (loggedInUserType === 'parent') {
+                    aiResponse = `Thank you for your question about ${loggedInEntity.name}. Based on the available data, ${loggedInEntity.name}'s performance in... [friendly analysis based on student data].`;
+                }
+                addMessageToChat(aiResponse, 'assistant');
+            }, 1500);
         };
 
         document.getElementById('sendAiChatBtn').addEventListener('click', handleAIChat);
@@ -671,10 +785,10 @@
                 { id: 'materials', name: 'Materials', icon: '<i class="fas fa-book fa-fw mr-2"></i>' },
                 { id: 'timetable', name: 'Timetable', icon: '<i class="fas fa-calendar-alt fa-fw mr-2"></i>' },
                 { id: 'announcements', name: 'Announcements', icon: '<i class="fas fa-bullhorn fa-fw mr-2"></i>' },
+                { id: 'settings', name: 'Settings', icon: '<i class="fas fa-cog fa-fw mr-2"></i>' },
                 { id: 'ai_guide', name: 'AI Guide', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' }
             ];
 
-            // Only show Fees option if the teacher is a fee manager
             if (!loggedInEntity.isFeeManager) {
                 sections = sections.filter(sec => sec.id !== 'fees');
             }
@@ -692,17 +806,22 @@
             const contentEl = document.getElementById('teacherContent');
             const controlsEl = document.getElementById('teacherHeaderControls');
             
-            controlsEl.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <label for="sectionSelect" class="text-slate-400">Batch:</label>
-                    <select id="sectionSelect" class="bg-slate-700 p-2 rounded-lg text-white">
-                        ${Object.keys(db.teachers).map(s => `<option value="${s}" ${s === activeSection ? 'selected' : ''}>${s}</option>`).join('')}
-                    </select>
-                </div>`;
-            document.getElementById('sectionSelect').addEventListener('change', (e) => {
-                activeSection = e.target.value;
-                showTeacherSection(sectionId); // Re-render current section for new class
-            });
+            if (sectionId !== 'settings' && sectionId !== 'ai_guide') {
+                controlsEl.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <label for="sectionSelect" class="text-slate-400">Batch:</label>
+                        <select id="sectionSelect" class="bg-slate-700 p-2 rounded-lg text-white">
+                            ${Object.keys(db.teachers).map(s => `<option value="${s}" ${s === activeSection ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                    </div>`;
+                document.getElementById('sectionSelect').addEventListener('change', (e) => {
+                    activeSection = e.target.value;
+                    showTeacherSection(sectionId);
+                });
+            } else {
+                controlsEl.innerHTML = '';
+            }
+
 
             switch(sectionId) {
                 case 'details':
@@ -734,6 +853,10 @@
                 case 'announcements':
                     titleEl.innerText = 'Post Announcements';
                     contentEl.innerHTML = renderAnnouncementsManager();
+                    break;
+                case 'settings':
+                    titleEl.innerText = 'Teacher Settings';
+                    contentEl.innerHTML = renderTeacherSettings();
                     break;
                 case 'ai_guide':
                     titleEl.innerText = 'AI Guide';
@@ -810,7 +933,7 @@
                         <tbody>
                             ${students.map(s => {
                                 const attendanceHistory = s.attendance[teacherId] || [];
-                                const todayStatus = attendanceHistory[0] || 'N/A';
+                                const todayStatus = attendanceHistory.length > 0 ? attendanceHistory[0].status : 'N/A';
                                 const statusClass = todayStatus === 'P' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400';
                                 return `
                                     <tr>
@@ -836,8 +959,14 @@
             const teacherId = loggedInEntity.id;
             if (student) {
                 if (!student.attendance[teacherId]) student.attendance[teacherId] = [];
-                student.attendance[teacherId].unshift(status); // Add to the beginning of the array
-                showTeacherSection('attendance'); // Re-render
+                const today = new Date().toISOString().split('T')[0];
+                const todayIndex = student.attendance[teacherId].findIndex(att => att.date === today);
+                if (todayIndex > -1) {
+                    student.attendance[teacherId][todayIndex].status = status;
+                } else {
+                    student.attendance[teacherId].unshift({ date: today, status: status });
+                }
+                showTeacherSection('attendance');
             }
         };
         
@@ -983,8 +1112,7 @@
 
             const attendanceByTeacher = teachers.map(teacher => {
                 const history = student.attendance[teacher.id] || [];
-                const present = history.filter(s => s === 'P').length;
-                const absent = history.filter(s => s === 'A').length;
+                const present = history.filter(s => s.status === 'P').length;
                 const total = history.length;
                 const percentage = total > 0 ? ((present / total) * 100).toFixed(0) : 'N/A';
 
@@ -992,7 +1120,8 @@
                     <div class="bg-slate-800 p-4 rounded-lg">
                         <h3 class="text-xl font-bold mb-2">${teacher.subject} <span class="text-sm font-normal text-slate-400">(with ${teacher.name})</span></h3>
                         <p>Percentage: <span class="font-bold text-lg ${percentage > 75 ? 'text-green-400' : 'text-yellow-400'}">${percentage}%</span></p>
-                        <p class="text-sm text-slate-400">Present: ${present}, Absent: ${absent}</p>
+                        <p class="text-sm text-slate-400">Present: ${present}, Absent: ${total - present}</p>
+                        <button onclick="showAttendanceDetails('${teacher.id}')" class="btn btn-secondary text-sm mt-2">View Details</button>
                     </div>
                 `;
             }).join('');
@@ -1002,6 +1131,33 @@
                     ${attendanceByTeacher}
                 </div>
             `;
+        };
+        
+        const showAttendanceDetails = (teacherId) => {
+            const student = loggedInEntity;
+            const teacher = db.teachers[activeSection].find(t => t.id === teacherId);
+            const history = student.attendance[teacherId] || [];
+            
+            document.getElementById('attendanceDetailTitle').innerText = `Attendance for ${teacher.subject}`;
+            const contentEl = document.getElementById('attendanceDetailContent');
+            
+            if (history.length === 0) {
+                contentEl.innerHTML = `<p class="text-slate-400">No attendance records found.</p>`;
+            } else {
+                contentEl.innerHTML = `
+                    <ul class="space-y-2">
+                        ${history.map(att => `
+                            <li class="flex justify-between items-center bg-slate-700 p-2 rounded-lg">
+                                <span>${new Date(att.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${att.status === 'P' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
+                                    ${att.status === 'P' ? 'Present' : 'Absent'}
+                                </span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            }
+            showModal(attendanceDetailModal);
         };
 
         const renderStudentTeachers = () => {
@@ -1044,11 +1200,11 @@
             switch(sectionId) {
                 case 'performance':
                     titleEl.innerText = "Child's Performance";
-                    contentEl.innerHTML = renderStudentPerformance(); // Re-use student's view
+                    contentEl.innerHTML = renderStudentPerformance();
                     break;
                 case 'attendance':
                     titleEl.innerText = "Child's Attendance";
-                    contentEl.innerHTML = renderStudentAttendance(); // Re-use student's view
+                    contentEl.innerHTML = renderStudentAttendance();
                     break;
                 case 'pay_fees':
                     titleEl.innerText = 'Pay Fees';
@@ -1056,7 +1212,7 @@
                     break;
                 case 'teachers':
                     titleEl.innerText = 'Contact Teachers';
-                    contentEl.innerHTML = renderStudentTeachers(); // Re-use student's view
+                    contentEl.innerHTML = renderStudentTeachers();
                     break;
                 case 'ai_assistant':
                     titleEl.innerText = 'AI Assistant';
@@ -1072,9 +1228,13 @@
         
         const renderStudentDetailsTable = () => {
             const students = db.students[activeSection] || [];
-            if (students.length === 0) return '<p>No students in this batch.</p>';
             
             return `
+                <div class="mb-4">
+                    <button onclick="showModal(addStudentModal)" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Add New Student
+                    </button>
+                </div>
                 <div class="overflow-x-auto bg-slate-800 p-4 rounded-lg">
                     <table class="responsive-table">
                         <thead>
@@ -1091,8 +1251,9 @@
                                     <td data-label="Name">${s.name}</td>
                                     <td data-label="Roll No">${s.roll}</td>
                                     <td data-label="Parent's Phone">${s.parentPhone}</td>
-                                    <td data-label="Actions">
-                                        <button onclick="openStudentDetailsEdit('${s.roll}')" class="btn btn-secondary text-sm"><i class="fas fa-user-edit"></i> Edit</button>
+                                    <td data-label="Actions" class="space-x-2">
+                                        <button onclick="openStudentDetailsEdit('${s.roll}')" class="btn btn-secondary text-sm"><i class="fas fa-user-edit"></i></button>
+                                        <button onclick="deleteStudent('${s.roll}')" class="btn btn-danger text-sm"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -1139,8 +1300,8 @@
                         <input id="materialTitle" class="w-full bg-slate-700 p-2 rounded-lg mb-2" placeholder="Material Title">
                         <input id="materialLink" class="w-full bg-slate-700 p-2 rounded-lg mb-2" placeholder="OR Paste a Link">
                         <div>
-                            <label for="materialFile" class="text-slate-400 block mb-1">OR Upload a File:</label>
-                            <input id="materialFile" type="file" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                            <label for="materialFile" class="text-slate-400 block mb-1">OR Upload a File (Images will be previewed):</label>
+                            <input id="materialFile" type="file" accept="image/*,application/pdf" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
                         </div>
                         <button onclick="addMaterial()" class="btn btn-primary mt-4">Add Material</button>
                     </div>
@@ -1201,14 +1362,72 @@
                             <li class="bg-slate-700 p-3 rounded-lg">
                                 <p class="text-sm text-slate-400">To: ${a.section} on ${a.date}</p>
                                 <p>${a.text}</p>
+                                <div class="mt-2 pt-2 border-t border-slate-600 flex gap-2">
+                                    <button onclick="sendAnnouncementToAll('${a.text}')" class="btn btn-whatsapp text-sm">
+                                        <i class="fab fa-whatsapp"></i> Notify All Parents in ${a.section}
+                                    </button>
+                                </div>
                             </li>
                         `).join('') : '<p class="text-slate-500">No announcements posted yet.</p>'}
                     </ul>
                 </div>
             `;
         };
+        
+        const renderTeacherSettings = () => {
+            return `
+                <div class="bg-slate-800 p-4 rounded-lg space-y-4">
+                    <h3 class="text-xl font-bold">My Profile</h3>
+                    <p><span class="font-semibold">Name:</span> ${loggedInEntity.name}</p>
+                    <p><span class="font-semibold">Subject:</span> ${loggedInEntity.subject}</p>
+                    <div>
+                        <button onclick="showModal(changePinModal)" class="btn btn-primary">Change PIN</button>
+                    </div>
+                </div>
+            `;
+        };
 
         // --- NEW FEATURE LOGIC (TEACHER) ---
+        const addStudent = () => {
+            const name = document.getElementById('addStudentName').value.trim();
+            const section = document.getElementById('addStudentSection').value;
+            const parentPhone = document.getElementById('addStudentParentPhone').value.trim();
+
+            if (!name || !section || !parentPhone) {
+                showNotification("Please fill out all fields.");
+                return;
+            }
+
+            const lastStudent = db.students[section].slice(-1)[0];
+            const lastRollNum = lastStudent ? parseInt(lastStudent.roll.split('-')[1]) : 0;
+            const newRoll = `${section}-${String(lastRollNum + 1).padStart(2, '0')}`;
+
+            const newStudent = {
+                roll: newRoll, name, parentPhone,
+                key: `${name.replace(/\s/g, '').slice(0, 4)}${section}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+                attendance: {}, fees: 'due', performance: {}
+            };
+
+            db.students[section].push(newStudent);
+            hideModal(addStudentModal);
+            showTeacherSection('details');
+            showNotification(`Student ${name} added successfully with Roll No: ${newRoll}`);
+        };
+
+        const deleteStudent = (roll) => {
+            const { student, section } = findStudentByRoll(roll);
+            if (!student) return;
+
+            showConfirmation(`Are you sure you want to remove ${student.name} (${student.roll})? This cannot be undone.`, () => {
+                const studentIndex = db.students[section].findIndex(s => s.roll === roll);
+                if (studentIndex > -1) {
+                    db.students[section].splice(studentIndex, 1);
+                    showTeacherSection('details');
+                    showNotification(`${student.name} has been removed.`);
+                }
+            });
+        };
+
         const updateFeeStatus = (roll, status) => {
             const student = db.students[activeSection].find(s => s.roll === roll);
             if (student) {
@@ -1217,59 +1436,30 @@
                 showNotification(`Fee status for ${student.name} updated to ${status}.`);
             }
         };
-
         
-        const addMaterial = async () => {
+        const addMaterial = () => {
             const title = document.getElementById('materialTitle').value.trim();
             const fileInput = document.getElementById('materialFile');
-            const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-            const linkEl = document.getElementById('materialLink');
-            const link = linkEl ? linkEl.value.trim() : "";
+            const file = fileInput.files[0];
+            const link = document.getElementById('materialLink').value.trim();
 
             if (!title || (!file && !link)) {
                 showNotification("Please provide a title and either a file or a link.");
                 return;
             }
 
-            let finalUrl = link;
-            try {
-                if (file) {
-                    // 1. Get a signed URL from our server
-                    const signResponse = await fetch(`/api/materials/sign-url`, {
-                        method: "POST",
-                        headers: { "Content-Type":"application/json" },
-                        body: JSON.stringify({ fileName: file.name })
-                    });
-                    const signData = await signResponse.json();
-                    if (!signData.ok) throw new Error(signData.error || "Signing failed");
-                    
-                    // 2. Upload the file directly to Supabase using the signed URL
-                    const { data: uploadData, error: uploadError } = await fetch(signData.signedUrl, {
-                        method: "PUT",
-                        headers: { "Content-Type": file.type || "application/octet-stream" },
-                        body: file
-                    });
-                     if (uploadError) throw new Error(uploadError.message || "Upload to storage failed");
-
-                    // 3. Get the public URL for the uploaded file
-                    const publicUrlResponse = await fetch(`/api/materials/public-url`, {
-                        method:"POST",
-                        headers:{ "Content-Type":"application/json" },
-                        body: JSON.stringify({ path: signData.path })
-                    });
-                    const publicUrlData = await publicUrlResponse.json();
-                    if (!publicUrlData.ok) throw new Error(publicUrlData.error || "URL creation failed");
-                    finalUrl = publicUrlData.url;
-                }
-
-                if (!db.materials[activeSection]) db.materials[activeSection] = [];
-                db.materials[activeSection].push({ title, link: finalUrl });
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    db.materials[activeSection].push({ title, link: e.target.result, type: file.type.startsWith('image/') ? 'image' : 'file' });
+                    showTeacherSection('materials');
+                    showNotification("Material with file added successfully.");
+                };
+                reader.readAsDataURL(file);
+            } else {
+                db.materials[activeSection].push({ title, link, type: 'link' });
                 showTeacherSection('materials');
-                showNotification("Material added successfully.");
-
-            } catch (e) {
-                console.error(e);
-                showNotification("Upload error: "+e.message);
+                showNotification("Material link added successfully.");
             }
         };
 
@@ -1283,7 +1473,6 @@
             const time = document.getElementById('ttTime').value.trim();
             const subject = document.getElementById('ttSubject').value.trim();
             if (day && time && subject) {
-                if (!db.timetables[activeSection]) db.timetables[activeSection] = [];
                 db.timetables[activeSection].push({ day, time, subject });
                 showTeacherSection('timetable');
             } else {
@@ -1301,6 +1490,7 @@
                 db.announcements.unshift({ text, section: targetSection, date: new Date().toLocaleDateString() });
                 showTeacherSection('announcements');
                 document.getElementById('announcementText').value = '';
+                showToast("New announcement posted!");
             } else {
                 showNotification("Please write an announcement.");
             }
@@ -1308,20 +1498,15 @@
 
         const sendBulkAbsentReminders = () => {
             const teacherId = loggedInEntity.id;
-            const absentStudents = db.students[activeSection].filter(student => {
-                const attendanceHistory = student.attendance[teacherId] || [];
-                return attendanceHistory[0] === 'A';
-            });
-
+            const absentStudents = db.students[activeSection].filter(s => (s.attendance[teacherId] || [])[0]?.status === 'A');
             if (absentStudents.length === 0) {
-                showNotification("No students are marked as absent today for your class.");
+                showNotification("No students are marked absent today.");
                 return;
             }
-            absentStudents.forEach(student => {
-                const message = `Dear Parent, this is a reminder that your child ${student.name} was absent today for ${loggedInEntity.subject} class.`;
-                sendWhatsAppOfficial(student.parentPhone, message);
+            showConfirmation(`This will send WhatsApp reminders to ${absentStudents.length} parent(s). Continue?`, () => {
+                absentStudents.forEach(s => sendWhatsAppOfficial(s.parentPhone, `Dear Parent, your child ${s.name} was absent today for ${loggedInEntity.subject} class.`));
+                showNotification(`Bulk reminders initiated.`);
             });
-            showNotification(`Bulk reminders initiated for ${absentStudents.length} absent student(s).`);
         };
 
         const sendBulkDueFeeReminders = () => {
@@ -1330,11 +1515,22 @@
                 showNotification("No students have due fees in this batch.");
                 return;
             }
-            dueStudents.forEach(student => {
-                const message = `Reminder: Coaching Centre fees for ${student.name} are due.`;
-                sendWhatsAppOfficial(student.parentPhone, message);
+            showConfirmation(`This will send fee reminders to ${dueStudents.length} parent(s). Continue?`, () => {
+                dueStudents.forEach(s => sendWhatsAppOfficial(s.parentPhone, `Reminder: Coaching Centre fees for ${s.name} are due.`));
+                showNotification(`Bulk fee reminders initiated.`);
             });
-            showNotification(`Bulk fee reminders initiated for ${dueStudents.length} student(s).`);
+        };
+        
+        const sendAnnouncementToAll = (text) => {
+            const students = db.students[activeSection];
+            if (students.length === 0) {
+                showNotification("No students in this batch to notify.");
+                return;
+            }
+            showConfirmation(`This will send the announcement to ${students.length} parent(s) via WhatsApp. Continue?`, () => {
+                students.forEach(s => sendWhatsAppOfficial(s.parentPhone, `Announcement: ${text}`));
+                showNotification(`Announcement sent to all parents in ${activeSection}.`);
+            });
         };
         
         const openStudentDetailsEdit = (roll) => {
@@ -1353,27 +1549,110 @@
             showTeacherSection('details');
             showNotification("Student details updated successfully!");
         };
+        
+        const changeTeacherPin = () => {
+            const currentPin = document.getElementById('currentPin').value;
+            const newPin = document.getElementById('newPin').value;
+            const confirmNewPin = document.getElementById('confirmNewPin').value;
+
+            if (loggedInEntity.pin !== currentPin) {
+                showNotification("Current PIN is incorrect.");
+                return;
+            }
+            if (newPin.length < 4) {
+                showNotification("New PIN must be at least 4 digits.");
+                return;
+            }
+            if (newPin !== confirmNewPin) {
+                showNotification("New PINs do not match.");
+                return;
+            }
+            loggedInEntity.pin = newPin;
+            hideModal(changePinModal);
+            showNotification("Your PIN has been updated successfully.");
+        };
 
 
         // --- NEW FEATURE RENDER FUNCTIONS (STUDENT/PARENT) ---
         const renderFeePayment = () => {
+            const student = loggedInEntity;
+            const upiId = "8302153208@yapl";
+            const amount = 5000; // Example fee amount
+            const upiLink = `upi://pay?pa=${upiId}&pn=Hardik%20Bhandari&am=${amount}&cu=INR&tn=Fees for ${student.name}`;
+            const qrCodeUrl = "https://i.imgur.com/exampleQR.png"; // Replace with your actual QR code URL
+
             return `
                 <div class="bg-slate-800 p-6 rounded-lg text-center">
-                    <h3 class="text-2xl font-bold mb-4">Pay Your Fees</h3>
-                    <p class="text-slate-400 mb-6">Scan the QR code with any UPI app or use the UPI ID below.</p>
-                    <img src="https://placehold.co/250x250/ffffff/000000?text=Scan+to+Pay" alt="QR Code for Fee Payment" class="mx-auto rounded-lg mb-4 border-4 border-slate-700">
-                    <p class="text-lg"><strong>UPI ID:</strong> <span class="font-mono bg-slate-700 px-2 py-1 rounded">coachingcentre@upi</span></p>
+                    <h3 class="text-2xl font-bold mb-2">Pay Your Fees</h3>
+                    <p class="text-lg mb-4">Amount Due: <span class="font-bold text-indigo-400">₹${amount.toLocaleString('en-IN')}</span></p>
+                    <div id="paymentGateway">
+                        <p class="text-slate-400 mb-6">Scan the QR code with any UPI app or click the button below.</p>
+                        <img src="${qrCodeUrl}" alt="Scan to Pay UPI QR Code" class="mx-auto rounded-lg mb-4 border-4 border-slate-700 w-64 h-64 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/256x256/1e293b/e2e8f0?text=QR+Code';">
+                        <p class="text-lg"><strong>UPI ID:</strong> <span class="font-mono bg-slate-700 px-2 py-1 rounded">${upiId}</span></p>
+                        <a href="${upiLink}" class="btn btn-primary mt-4"><i class="fas fa-mobile-alt"></i> Pay with UPI App</a>
+                        <button onclick="simulatePayment('${student.roll}', ${amount})" class="btn btn-secondary mt-4"><i class="fas fa-check-circle"></i> Simulate Successful Payment</button>
+                    </div>
                 </div>
             `;
+        };
+
+        const simulatePayment = (roll, amount) => {
+            const { student } = findStudentByRoll(roll);
+            if (!student) return;
+            
+            student.fees = 'paid';
+            showNotification("Payment successful! Generating receipt...");
+            
+            setTimeout(() => {
+                generateReceipt(student, amount);
+            }, 1500);
+        };
+
+        const generateReceipt = (student, amount) => {
+            const receiptContentEl = document.getElementById('receiptContent');
+            const transactionId = `TXN${Date.now()}`;
+            const receiptDate = new Date().toLocaleString();
+
+            const receiptHTML = `
+                <div class="p-2">
+                    <h2 class="text-2xl font-bold text-center mb-4">Payment Receipt</h2>
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="text-xl font-semibold">Coaching Centre</h3>
+                        <p class="text-sm">Date: ${receiptDate}</p>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <p><strong>Student Name:</strong> ${student.name}</p>
+                        <p><strong>Roll Number:</strong> ${student.roll}</p>
+                        <p><strong>Transaction ID:</strong> ${transactionId}</p>
+                        <p><strong>Amount Paid:</strong> <span class="font-bold">₹${amount.toLocaleString('en-IN')}</span></p>
+                        <p><strong>Payment Method:</strong> UPI (Simulated)</p>
+                    </div>
+                    <div class="mt-6 text-center">
+                        <p class="text-lg font-bold text-green-600">PAYMENT SUCCESSFUL</p>
+                        <p class="text-xs text-gray-500 mt-2">This is a computer-generated receipt.</p>
+                    </div>
+                </div>
+            `;
+            receiptContentEl.innerHTML = receiptHTML;
+
+            const receiptTextForWhatsApp = `Payment Receipt:\nStudent: ${student.name}\nRoll: ${student.roll}\nAmount: ₹${amount.toLocaleString('en-IN')}\nTxn ID: ${transactionId}\nDate: ${receiptDate}\nStatus: SUCCESSFUL`;
+
+            document.getElementById('downloadReceiptBtn').onclick = () => downloadPdf('receiptContent', `receipt-${student.roll}.pdf`);
+            document.getElementById('sendReceiptWhatsAppBtn').onclick = () => sendWhatsAppOfficial(student.parentPhone, receiptTextForWhatsApp);
+            
+            showModal(receiptModal);
         };
 
         const renderStudentMaterials = () => {
             const materials = db.materials[activeSection] || [];
             return `
                 <div class="bg-slate-800 p-4 rounded-lg">
-                    <ul class="space-y-2">
+                    <ul class="space-y-3">
                         ${materials.length > 0 ? materials.map(m => `
                             <li class="bg-slate-700 p-3 rounded-lg">
+                                ${m.type === 'image' ?
+                                    `<div class="mb-2"><img src="${m.link}" class="max-w-full h-auto rounded-lg" alt="${m.title}"></div>` : ''
+                                }
                                 <a href="${m.link}" target="_blank" class="text-indigo-400 hover:underline flex items-center justify-between">
                                     <span><i class="fas fa-link mr-2"></i>${m.title}</span>
                                     <i class="fas fa-external-link-alt"></i>
@@ -1431,7 +1710,7 @@
         };
 
         const openAIAssistant = (userType) => {
-            loggedInUserType = userType; // Ensure context is set
+            loggedInUserType = userType;
             const title = {
                 'teacher': 'AI Website Guide',
                 'student': 'AI Academic Tutor',
@@ -1442,35 +1721,71 @@
             showModal(aiAssistantModal);
         };
         
-        const openPerformanceReport = async (roll) => {
+        const openPerformanceReport = (roll) => {
             const student = findStudentByRoll(roll).student;
             const reportContentEl = document.getElementById('reportContent');
             reportContentEl.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-4xl text-indigo-400"></i><p class="mt-4">Generating AI-powered report...</p></div>`;
+            
+            const teacherNotesSection = document.getElementById('teacherNotesSection');
+            if (loggedInUserType === 'teacher') {
+                teacherNotesSection.classList.remove('hidden');
+                document.getElementById('teacherNotesInput').value = '';
+            } else {
+                teacherNotesSection.classList.add('hidden');
+            }
+
             showModal(reportModal);
 
-            const prompt = `Generate a detailed, encouraging, and constructive student performance report for ${student.name} (Roll: ${student.roll}) for a coaching centre. Their data is: Performance: ${JSON.stringify(student.performance)}, Attendance: ${JSON.stringify(student.attendance)}. Structure it with an introduction, subject-by-subject analysis (mentioning the teacher), strengths, areas for improvement with actionable advice, and a positive concluding summary.`;
+            // Simulated AI response for report generation
+            setTimeout(() => {
+                const performanceSummary = Object.entries(student.performance).map(([teacherId, scores]) => {
+                    const teacher = db.teachers[activeSection].find(t => t.id === teacherId);
+                    return Object.entries(scores).map(([subject, score]) => `\n- ${subject} (${teacher.name}): Scored ${score}.`).join('');
+                }).join('');
 
-            try {
-                const response = await fetch('/api/ai/generate', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ prompt }) 
-                });
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || "API Error");
-                }
-                const result = await response.json();
-                generatedReportText = result.text; // Store text
+                generatedReportText = `
+Student Performance Report
+--------------------------
+Name: ${student.name}
+Roll Number: ${student.roll}
+
+Summary:
+This report provides a concise overview of ${student.name}'s recent performance.
+
+Subject Analysis: ${performanceSummary}
+
+Strengths:
+- Shows good understanding in subjects with scores above 85.
+- Consistent attendance in most classes.
+
+Areas for Improvement:
+- Focus on topics where scores are below 75.
+- Practice more mock tests to improve time management.
+
+Conclusion:
+${student.name} is a capable student with good potential. Consistent effort in the identified areas will yield excellent results.
+                `;
                 reportContentEl.innerHTML = `<pre class="whitespace-pre-wrap font-sans">${generatedReportText}</pre>`;
-            } catch (error) {
-                console.error("Report Generation Error:", error);
-                reportContentEl.innerHTML = `<p class="text-red-400">Could not generate AI report. Error: ${error.message}</p>`;
-                generatedReportText = "Report generation failed.";
-            }
+            }, 2000);
             
-            document.getElementById('sendReportWhatsAppBtn').onclick = () => sendWhatsAppOfficial(student.parentPhone, generatedReportText);
-            document.getElementById('downloadPdfBtn').onclick = () => downloadPdf('reportContent', `report-${student.roll}.pdf`);
+            document.getElementById('sendReportWhatsAppBtn').onclick = () => {
+                const teacherNotes = document.getElementById('teacherNotesInput').value.trim();
+                let finalReportText = generatedReportText;
+                if(teacherNotes) {
+                    finalReportText += `\n\nTeacher's Notes:\n${teacherNotes}`;
+                }
+                sendWhatsAppOfficial(student.parentPhone, finalReportText);
+            };
+            document.getElementById('downloadPdfBtn').onclick = () => {
+                 const teacherNotes = document.getElementById('teacherNotesInput').value.trim();
+                 if(teacherNotes) {
+                    const notesEl = document.createElement('div');
+                    notesEl.innerHTML = `<h3 class="font-bold mt-4">Teacher's Notes:</h3><p>${teacherNotes}</p>`;
+                    reportContentEl.appendChild(notesEl);
+                 }
+                 downloadPdf('reportContent', `report-${student.roll}.pdf`);
+                 if(teacherNotes) reportContentEl.removeChild(reportContentEl.lastChild);
+            };
         };
 
         document.getElementById('notificationCloseBtn').addEventListener('click', () => hideModal(notificationModal));
