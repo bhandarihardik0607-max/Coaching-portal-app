@@ -270,16 +270,16 @@
         </div>
     </div>
 
-    <div id="aiAssistantModal" class="modal-overlay">
+    <div id="geminiAssistantModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 id="aiModalTitle" class="text-2xl font-bold mb-4">AI Assistant</h2>
-            <div id="aiChatWindow" class="chat-window mb-4"></div>
+            <h2 id="geminiModalTitle" class="text-2xl font-bold mb-4">Gemini Assistant</h2>
+            <div id="geminiChatWindow" class="chat-window mb-4"></div>
             <div class="flex gap-2">
-                <input type="text" id="aiChatInput" class="flex-grow bg-slate-900 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ask a question...">
-                <button id="sendAiChatBtn" class="btn btn-primary">Send</button>
+                <input type="text" id="geminiChatInput" class="flex-grow bg-slate-900 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ask a question...">
+                <button id="sendGeminiChatBtn" class="btn btn-primary">Send</button>
             </div>
             <div class="flex justify-end mt-4">
-                <button id="aiAssistantCloseBtn" class="btn btn-secondary">Close</button>
+                <button id="geminiAssistantCloseBtn" class="btn btn-secondary">Close</button>
             </div>
         </div>
     </div>
@@ -512,7 +512,7 @@
         const notificationModal = document.getElementById('notificationModal');
         const confirmationModal = document.getElementById('confirmationModal');
         const reportModal = document.getElementById('reportModal');
-        const aiAssistantModal = document.getElementById('aiAssistantModal');
+        const geminiAssistantModal = document.getElementById('geminiAssistantModal');
         const editPerformanceModal = document.getElementById('editPerformanceModal');
         const editStudentDetailsModal = document.getElementById('editStudentDetailsModal');
         const addStudentModal = document.getElementById('addStudentModal');
@@ -604,25 +604,9 @@
         };
 
         // This function simulates a backend API call for WhatsApp.
-        // In a real app, this would make a fetch request to your server.
         const sendWhatsAppOfficial = (phone, text) => {
             console.log(`Simulating sending WhatsApp to ${phone}: "${text}"`);
             showToast(`WhatsApp sent to ${phone.slice(0, 5)}...`);
-            // In a real app, you would have a fetch call here like:
-            /*
-            fetch('/api/whatsapp/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to: phone, text: text })
-            }).then(res => res.json()).then(data => {
-                if(data.ok) showToast('WhatsApp message sent successfully!');
-                else throw new Error(data.error);
-            }).catch(err => {
-                console.error("WhatsApp API Error:", err);
-                showNotification(`Could not send message via Server. Opening WhatsApp app...`);
-                sendWhatsAppDeepLink(phone, text);
-            });
-            */
         };
     
         // --- LOGIN LOGIC ---
@@ -699,43 +683,43 @@
             loginPage.classList.remove('hidden');
         };
 
-        // --- AI ASSISTANT LOGIC (SIMULATED) ---
-        const aiChatWindow = document.getElementById('aiChatWindow');
-        const aiChatInput = document.getElementById('aiChatInput');
+        // --- GEMINI ASSISTANT LOGIC (SIMULATED) ---
+        const geminiChatWindow = document.getElementById('geminiChatWindow');
+        const geminiChatInput = document.getElementById('geminiChatInput');
         
         const addMessageToChat = (message, sender) => {
             const bubble = document.createElement('div');
             bubble.className = `chat-bubble ${sender}`;
             bubble.innerText = message;
-            aiChatWindow.appendChild(bubble);
-            aiChatWindow.scrollTop = aiChatWindow.scrollHeight;
+            geminiChatWindow.appendChild(bubble);
+            geminiChatWindow.scrollTop = geminiChatWindow.scrollHeight;
         };
 
-        const handleAIChat = async () => {
-            const userQuery = aiChatInput.value.trim();
+        const handleGeminiChat = async () => {
+            const userQuery = geminiChatInput.value.trim();
             if (!userQuery) return;
             addMessageToChat(userQuery, 'user');
-            aiChatInput.value = '';
+            geminiChatInput.value = '';
             addMessageToChat('Thinking...', 'assistant');
 
-            // This is a simulated AI response. In a real app, this would be a fetch call.
+            // This is a simulated Gemini response.
             setTimeout(() => {
-                aiChatWindow.removeChild(aiChatWindow.lastChild);
-                let aiResponse = "I'm sorry, I can't connect to the AI service right now. Please try again later.";
+                geminiChatWindow.removeChild(geminiChatWindow.lastChild);
+                let geminiResponse = "I'm sorry, I can't connect right now. Please try again later.";
                 if (loggedInUserType === 'student') {
-                    aiResponse = `Regarding your question about "${userQuery}", the key concept to remember is... [detailed explanation suitable for a student].`;
+                    geminiResponse = `To solve for 'x' in a quadratic equation, you can use the quadratic formula: x = [-b ± sqrt(b²-4ac)] / 2a. Make sure to identify 'a', 'b', and 'c' from your equation first.`;
                 } else if (loggedInUserType === 'teacher') {
-                    aiResponse = `To address your query "${userQuery}", you should navigate to the 'Student Performance' section. There you can view and edit grades for each student individually.`;
+                    geminiResponse = `FAQ: To send a bulk reminder for due fees, go to the 'Fees' tab and click the 'Send Reminders to All Due' button.`;
                 } else if (loggedInUserType === 'parent') {
-                    aiResponse = `Thank you for your question about ${loggedInEntity.name}. Based on the available data, ${loggedInEntity.name}'s performance in... [friendly analysis based on student data].`;
+                    geminiResponse = `FAQ: You can view your child's detailed attendance for each subject by navigating to the 'Child's Attendance' tab and clicking 'View Details' on any subject card.`;
                 }
-                addMessageToChat(aiResponse, 'assistant');
+                addMessageToChat(geminiResponse, 'assistant');
             }, 1500);
         };
 
-        document.getElementById('sendAiChatBtn').addEventListener('click', handleAIChat);
-        aiChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleAIChat());
-        document.getElementById('aiAssistantCloseBtn').addEventListener('click', () => hideModal(aiAssistantModal));
+        document.getElementById('sendGeminiChatBtn').addEventListener('click', handleGeminiChat);
+        geminiChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleGeminiChat());
+        document.getElementById('geminiAssistantCloseBtn').addEventListener('click', () => hideModal(geminiAssistantModal));
 
         // --- RENDER FUNCTIONS ---
         const renderSidebar = (user, sections) => {
@@ -786,7 +770,7 @@
                 { id: 'timetable', name: 'Timetable', icon: '<i class="fas fa-calendar-alt fa-fw mr-2"></i>' },
                 { id: 'announcements', name: 'Announcements', icon: '<i class="fas fa-bullhorn fa-fw mr-2"></i>' },
                 { id: 'settings', name: 'Settings', icon: '<i class="fas fa-cog fa-fw mr-2"></i>' },
-                { id: 'ai_guide', name: 'AI Guide', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' }
+                { id: 'gemini_guide', name: 'Gemini Guide', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' }
             ];
 
             if (!loggedInEntity.isFeeManager) {
@@ -806,7 +790,7 @@
             const contentEl = document.getElementById('teacherContent');
             const controlsEl = document.getElementById('teacherHeaderControls');
             
-            if (sectionId !== 'settings' && sectionId !== 'ai_guide') {
+            if (sectionId !== 'settings' && sectionId !== 'gemini_guide') {
                 controlsEl.innerHTML = `
                     <div class="flex items-center gap-2">
                         <label for="sectionSelect" class="text-slate-400">Batch:</label>
@@ -858,9 +842,9 @@
                     titleEl.innerText = 'Teacher Settings';
                     contentEl.innerHTML = renderTeacherSettings();
                     break;
-                case 'ai_guide':
-                    titleEl.innerText = 'AI Guide';
-                    contentEl.innerHTML = `<p>Have questions about using the portal? Click below to ask our AI assistant!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('teacher')">Open AI Guide</button>`;
+                case 'gemini_guide':
+                    titleEl.innerText = 'Gemini Guide';
+                    contentEl.innerHTML = `<p>Have questions about using the portal? Click below to ask our Gemini assistant!</p><button class="btn btn-primary mt-2" onclick="openGeminiAssistant('teacher')">Open Gemini Guide</button>`;
                     break;
                 default:
                     titleEl.innerText = 'Coming Soon';
@@ -1013,7 +997,7 @@
                 { id: 'timetable', name: 'Class Timetable', icon: '<i class="fas fa-clock fa-fw mr-2"></i>' },
                 { id: 'announcements', name: 'Announcements', icon: '<i class="fas fa-bell fa-fw mr-2"></i>' },
                 { id: 'teachers', name: 'My Teachers', icon: '<i class="fas fa-chalkboard-teacher fa-fw mr-2"></i>' },
-                { id: 'ai_tutor', name: 'AI Tutor', icon: '<i class="fas fa-brain fa-fw mr-2"></i>' },
+                { id: 'gemini_tutor', name: 'Gemini Tutor', icon: '<i class="fas fa-brain fa-fw mr-2"></i>' },
             ];
             studentDashboard.innerHTML = renderSidebar(user, sections) + renderContentArea(user);
             attachSidebarListeners('student');
@@ -1058,9 +1042,9 @@
                     titleEl.innerText = 'My Teachers';
                     contentEl.innerHTML = renderStudentTeachers();
                     break;
-                case 'ai_tutor':
-                    titleEl.innerText = 'AI Tutor';
-                    contentEl.innerHTML = `<p>Have a question about your homework or a topic you're studying? Ask the AI Tutor!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('student')">Open AI Tutor</button>`;
+                case 'gemini_tutor':
+                    titleEl.innerText = 'Gemini Tutor';
+                    contentEl.innerHTML = `<p>Have a question about your homework or a topic you're studying? Ask the Gemini Tutor!</p><button class="btn btn-primary mt-2" onclick="openGeminiAssistant('student')">Open Gemini Tutor</button>`;
                     break;
                 default:
                     titleEl.innerText = 'Coming Soon';
@@ -1183,7 +1167,7 @@
                 { id: 'attendance', name: "Child's Attendance", icon: '<i class="fas fa-user-check fa-fw mr-2"></i>' },
                 { id: 'pay_fees', name: 'Pay Fees', icon: '<i class="fas fa-qrcode fa-fw mr-2"></i>' },
                 { id: 'teachers', name: 'Contact Teachers', icon: '<i class="fas fa-chalkboard-teacher fa-fw mr-2"></i>' },
-                { id: 'ai_assistant', name: 'AI Assistant', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' },
+                { id: 'gemini_assistant', name: 'Gemini Assistant', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' },
             ];
             parentDashboard.innerHTML = renderSidebar(user, sections) + renderContentArea(user);
             attachSidebarListeners('parent');
@@ -1214,9 +1198,9 @@
                     titleEl.innerText = 'Contact Teachers';
                     contentEl.innerHTML = renderStudentTeachers();
                     break;
-                case 'ai_assistant':
-                    titleEl.innerText = 'AI Assistant';
-                    contentEl.innerHTML = `<p>Have questions about your child's progress or coaching centre policies? Ask our AI assistant!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('parent')">Open AI Assistant</button>`;
+                case 'gemini_assistant':
+                    titleEl.innerText = 'Gemini Assistant';
+                    contentEl.innerHTML = `<p>Have questions about your child's progress or coaching centre policies? Ask our Gemini assistant!</p><button class="btn btn-primary mt-2" onclick="openGeminiAssistant('parent')">Open Gemini Assistant</button>`;
                     break;
                 default:
                     titleEl.innerText = 'Coming Soon';
@@ -1586,31 +1570,42 @@
                     <h3 class="text-2xl font-bold mb-2">Pay Your Fees</h3>
                     <p class="text-lg mb-4">Amount Due: <span class="font-bold text-indigo-400">₹${amount.toLocaleString('en-IN')}</span></p>
                     <div id="paymentGateway">
-                        <p class="text-slate-400 mb-6">Scan the QR code with any UPI app or click the button below.</p>
+                        <p class="text-slate-400 mb-6">1. Scan the QR or use the UPI app to pay.</p>
                         <img src="${qrCodeUrl}" alt="Scan to Pay UPI QR Code" class="mx-auto rounded-lg mb-4 border-4 border-slate-700 w-64 h-64 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/256x256/1e293b/e2e8f0?text=QR+Code';">
                         <p class="text-lg"><strong>UPI ID:</strong> <span class="font-mono bg-slate-700 px-2 py-1 rounded">${upiId}</span></p>
                         <a href="${upiLink}" class="btn btn-primary mt-4"><i class="fas fa-mobile-alt"></i> Pay with UPI App</a>
-                        <button onclick="simulatePayment('${student.roll}', ${amount})" class="btn btn-secondary mt-4"><i class="fas fa-check-circle"></i> Simulate Successful Payment</button>
+                    </div>
+                    <div class="mt-8 border-t border-slate-700 pt-6">
+                         <p class="text-slate-400 mb-4">2. After payment, enter the Transaction ID to get your receipt.</p>
+                         <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+                            <input type="text" id="transactionIdInput" class="flex-grow bg-slate-700 p-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter UPI Transaction ID">
+                            <button onclick="verifyPayment('${student.roll}', ${amount})" class="btn btn-secondary"><i class="fas fa-check-circle"></i> Verify & Get Receipt</button>
+                         </div>
                     </div>
                 </div>
             `;
         };
 
-        const simulatePayment = (roll, amount) => {
+        const verifyPayment = (roll, amount) => {
+            const transactionId = document.getElementById('transactionIdInput').value.trim();
+            if (!transactionId) {
+                showNotification("Please enter a valid Transaction ID from your UPI app.");
+                return;
+            }
+
             const { student } = findStudentByRoll(roll);
             if (!student) return;
             
             student.fees = 'paid';
-            showNotification("Payment successful! Generating receipt...");
+            showNotification("Payment verified! Generating receipt...");
             
             setTimeout(() => {
-                generateReceipt(student, amount);
+                generateReceipt(student, amount, transactionId);
             }, 1500);
         };
 
-        const generateReceipt = (student, amount) => {
+        const generateReceipt = (student, amount, transactionId) => {
             const receiptContentEl = document.getElementById('receiptContent');
-            const transactionId = `TXN${Date.now()}`;
             const receiptDate = new Date().toLocaleString();
 
             const receiptHTML = `
@@ -1625,7 +1620,7 @@
                         <p><strong>Roll Number:</strong> ${student.roll}</p>
                         <p><strong>Transaction ID:</strong> ${transactionId}</p>
                         <p><strong>Amount Paid:</strong> <span class="font-bold">₹${amount.toLocaleString('en-IN')}</span></p>
-                        <p><strong>Payment Method:</strong> UPI (Simulated)</p>
+                        <p><strong>Payment Method:</strong> UPI</p>
                     </div>
                     <div class="mt-6 text-center">
                         <p class="text-lg font-bold text-green-600">PAYMENT SUCCESSFUL</p>
@@ -1709,22 +1704,22 @@
             });
         };
 
-        const openAIAssistant = (userType) => {
+        const openGeminiAssistant = (userType) => {
             loggedInUserType = userType;
             const title = {
-                'teacher': 'AI Website Guide',
-                'student': 'AI Academic Tutor',
-                'parent': 'Parent AI Assistant'
+                'teacher': 'Gemini Website Guide',
+                'student': 'Gemini Academic Tutor',
+                'parent': 'Parent Gemini Assistant'
             }[userType];
-            document.getElementById('aiModalTitle').innerText = title;
-            aiChatWindow.innerHTML = `<div class="chat-bubble assistant">Hello! How can I help you today?</div>`;
-            showModal(aiAssistantModal);
+            document.getElementById('geminiModalTitle').innerText = title;
+            geminiChatWindow.innerHTML = `<div class="chat-bubble assistant">Hello! How can I help you today?</div>`;
+            showModal(geminiAssistantModal);
         };
         
         const openPerformanceReport = (roll) => {
             const student = findStudentByRoll(roll).student;
             const reportContentEl = document.getElementById('reportContent');
-            reportContentEl.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-4xl text-indigo-400"></i><p class="mt-4">Generating AI-powered report...</p></div>`;
+            reportContentEl.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-4xl text-indigo-400"></i><p class="mt-4">Generating Gemini-powered report...</p></div>`;
             
             const teacherNotesSection = document.getElementById('teacherNotesSection');
             if (loggedInUserType === 'teacher') {
@@ -1736,7 +1731,7 @@
 
             showModal(reportModal);
 
-            // Simulated AI response for report generation
+            // Simulated Gemini response for report generation
             setTimeout(() => {
                 const performanceSummary = Object.entries(student.performance).map(([teacherId, scores]) => {
                     const teacher = db.teachers[activeSection].find(t => t.id === teacherId);
