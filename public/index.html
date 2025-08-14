@@ -270,16 +270,16 @@
         </div>
     </div>
 
-    <div id="geminiAssistantModal" class="modal-overlay">
+    <div id="aiAssistantModal" class="modal-overlay">
         <div class="modal-content">
-            <h2 id="geminiModalTitle" class="text-2xl font-bold mb-4">Gemini Assistant</h2>
-            <div id="geminiChatWindow" class="chat-window mb-4"></div>
+            <h2 id="aiModalTitle" class="text-2xl font-bold mb-4">AI Assistant</h2>
+            <div id="aiChatWindow" class="chat-window mb-4"></div>
             <div class="flex gap-2">
-                <input type="text" id="geminiChatInput" class="flex-grow bg-slate-900 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ask a question...">
-                <button id="sendGeminiChatBtn" class="btn btn-primary">Send</button>
+                <input type="text" id="aiChatInput" class="flex-grow bg-slate-900 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ask a question...">
+                <button id="sendAiChatBtn" class="btn btn-primary">Send</button>
             </div>
             <div class="flex justify-end mt-4">
-                <button id="geminiAssistantCloseBtn" class="btn btn-secondary">Close</button>
+                <button id="aiAssistantCloseBtn" class="btn btn-secondary">Close</button>
             </div>
         </div>
     </div>
@@ -489,8 +489,8 @@
                 { day: "Wednesday", time: "11:00 AM", subject: "History" },
             ];
             
-            db.announcements.push({ text: "The annual mock test series will begin next Friday. All students are requested to prepare accordingly.", section: "all", date: new Date().toLocaleDateString() });
-            db.announcements.push({ text: "Parent-teacher meeting for batch 12A is scheduled for this Saturday at 10 AM.", section: "12A", date: new Date().toLocaleDateString() });
+            db.announcements.push({ text: "The annual mock test series will begin next Friday. All students are requested to prepare accordingly.", section: "all", date: new Date().getTime() });
+            db.announcements.push({ text: "Parent-teacher meeting for batch 12A is scheduled for this Saturday at 10 AM.", section: "12A", date: new Date().getTime() });
 
         };
 
@@ -503,6 +503,7 @@
         let activeSection = '12A';
         let studentToEdit = null;
         let generatedReportText = ''; // To store the AI-generated report text
+        let lastSeenAnnouncementTimestamp = 0;
 
         // --- DOM ELEMENTS ---
         const loginPage = document.getElementById('loginPage');
@@ -512,7 +513,7 @@
         const notificationModal = document.getElementById('notificationModal');
         const confirmationModal = document.getElementById('confirmationModal');
         const reportModal = document.getElementById('reportModal');
-        const geminiAssistantModal = document.getElementById('geminiAssistantModal');
+        const aiAssistantModal = document.getElementById('aiAssistantModal');
         const editPerformanceModal = document.getElementById('editPerformanceModal');
         const editStudentDetailsModal = document.getElementById('editStudentDetailsModal');
         const addStudentModal = document.getElementById('addStudentModal');
@@ -656,6 +657,7 @@
                 loginPage.classList.add('hidden');
                 renderStudentDashboard();
                 studentDashboard.classList.remove('hidden');
+                checkForNewAnnouncements();
             } else {
                 showNotification('Student not found.');
             }
@@ -671,6 +673,7 @@
                 loginPage.classList.add('hidden');
                 renderParentDashboard();
                 parentDashboard.classList.remove('hidden');
+                checkForNewAnnouncements();
             } else {
                 showNotification('Child not found.');
             }
@@ -683,43 +686,72 @@
             loginPage.classList.remove('hidden');
         };
 
-        // --- GEMINI ASSISTANT LOGIC (SIMULATED) ---
-        const geminiChatWindow = document.getElementById('geminiChatWindow');
-        const geminiChatInput = document.getElementById('geminiChatInput');
+        // --- AI ASSISTANT LOGIC (SIMULATED GEMINI BACKEND) ---
+        const aiChatWindow = document.getElementById('aiChatWindow');
+        const aiChatInput = document.getElementById('aiChatInput');
         
         const addMessageToChat = (message, sender) => {
             const bubble = document.createElement('div');
             bubble.className = `chat-bubble ${sender}`;
             bubble.innerText = message;
-            geminiChatWindow.appendChild(bubble);
-            geminiChatWindow.scrollTop = geminiChatWindow.scrollHeight;
+            aiChatWindow.appendChild(bubble);
+            aiChatWindow.scrollTop = aiChatWindow.scrollHeight;
         };
 
-        const handleGeminiChat = async () => {
-            const userQuery = geminiChatInput.value.trim();
+        const handleAIChat = async () => {
+            const userQuery = aiChatInput.value.trim();
             if (!userQuery) return;
             addMessageToChat(userQuery, 'user');
-            geminiChatInput.value = '';
+            aiChatInput.value = '';
             addMessageToChat('Thinking...', 'assistant');
 
-            // This is a simulated Gemini response.
-            setTimeout(() => {
-                geminiChatWindow.removeChild(geminiChatWindow.lastChild);
-                let geminiResponse = "I'm sorry, I can't connect right now. Please try again later.";
-                if (loggedInUserType === 'student') {
-                    geminiResponse = `To solve for 'x' in a quadratic equation, you can use the quadratic formula: x = [-b ± sqrt(b²-4ac)] / 2a. Make sure to identify 'a', 'b', and 'c' from your equation first.`;
-                } else if (loggedInUserType === 'teacher') {
-                    geminiResponse = `FAQ: To send a bulk reminder for due fees, go to the 'Fees' tab and click the 'Send Reminders to All Due' button.`;
-                } else if (loggedInUserType === 'parent') {
-                    geminiResponse = `FAQ: You can view your child's detailed attendance for each subject by navigating to the 'Child's Attendance' tab and clicking 'View Details' on any subject card.`;
+            let contextPrompt = '';
+            if (loggedInUserType === 'student') {
+                contextPrompt = `As an academic tutor, provide a moderate-level explanation for the following student question: "${userQuery}"`;
+            } else if (loggedInUserType === 'teacher') {
+                contextPrompt = `As a website assistant, provide a short, FAQ-style answer for the following teacher question about the portal: "${userQuery}"`;
+            } else if (loggedInUserType === 'parent') {
+                contextPrompt = `As a website assistant, provide a short, FAQ-style answer for the following parent question about the portal: "${userQuery}"`;
+            }
+
+            try {
+                // In a real application, you would build a backend that takes this prompt,
+                // securely uses your Gemini API key, and returns the AI's response.
+                // The 'fetch' will fail here, so we'll handle it in the catch block for this demo.
+                const response = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: contextPrompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-                addMessageToChat(geminiResponse, 'assistant');
-            }, 1500);
+
+                const result = await response.json();
+                aiChatWindow.removeChild(aiChatWindow.lastChild);
+                addMessageToChat(result.text, 'assistant');
+
+            } catch (error) {
+                console.error("AI Assistant Fetch Error:", error.message);
+                // --- MOCK RESPONSE - Simulating a real Gemini backend call ---
+                aiChatWindow.removeChild(aiChatWindow.lastChild);
+                let mockResponse = "I'm sorry, I can't connect to the AI service right now.";
+                if (contextPrompt.includes("student question")) {
+                    mockResponse = `Of course. Regarding "${userQuery}", the main principle is [moderate-level explanation]. A good way to remember this is [analogy or example].`;
+                } else if (contextPrompt.includes("teacher question")) {
+                     mockResponse = `To manage "${userQuery}", navigate to the corresponding section (e.g., 'Performance', 'Attendance') from the sidebar to find the tools you need.`;
+                } else if (contextPrompt.includes("parent question")) {
+                    mockResponse = `You can find information about "${userQuery}" in the '${loggedInEntity.name}'s Performance' or 'Attendance' sections of your dashboard.`;
+                }
+                addMessageToChat(mockResponse, 'assistant');
+                // --- END MOCK RESPONSE ---
+            }
         };
 
-        document.getElementById('sendGeminiChatBtn').addEventListener('click', handleGeminiChat);
-        geminiChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleGeminiChat());
-        document.getElementById('geminiAssistantCloseBtn').addEventListener('click', () => hideModal(geminiAssistantModal));
+        document.getElementById('sendAiChatBtn').addEventListener('click', handleAIChat);
+        aiChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleAIChat());
+        document.getElementById('aiAssistantCloseBtn').addEventListener('click', () => hideModal(aiAssistantModal));
 
         // --- RENDER FUNCTIONS ---
         const renderSidebar = (user, sections) => {
@@ -770,7 +802,7 @@
                 { id: 'timetable', name: 'Timetable', icon: '<i class="fas fa-calendar-alt fa-fw mr-2"></i>' },
                 { id: 'announcements', name: 'Announcements', icon: '<i class="fas fa-bullhorn fa-fw mr-2"></i>' },
                 { id: 'settings', name: 'Settings', icon: '<i class="fas fa-cog fa-fw mr-2"></i>' },
-                { id: 'gemini_guide', name: 'Gemini Guide', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' }
+                { id: 'ai_guide', name: 'AI Guide', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' }
             ];
 
             if (!loggedInEntity.isFeeManager) {
@@ -790,7 +822,7 @@
             const contentEl = document.getElementById('teacherContent');
             const controlsEl = document.getElementById('teacherHeaderControls');
             
-            if (sectionId !== 'settings' && sectionId !== 'gemini_guide') {
+            if (sectionId !== 'settings' && sectionId !== 'ai_guide') {
                 controlsEl.innerHTML = `
                     <div class="flex items-center gap-2">
                         <label for="sectionSelect" class="text-slate-400">Batch:</label>
@@ -842,9 +874,9 @@
                     titleEl.innerText = 'Teacher Settings';
                     contentEl.innerHTML = renderTeacherSettings();
                     break;
-                case 'gemini_guide':
-                    titleEl.innerText = 'Gemini Guide';
-                    contentEl.innerHTML = `<p>Have questions about using the portal? Click below to ask our Gemini assistant!</p><button class="btn btn-primary mt-2" onclick="openGeminiAssistant('teacher')">Open Gemini Guide</button>`;
+                case 'ai_guide':
+                    titleEl.innerText = 'AI Guide';
+                    contentEl.innerHTML = `<p>Have questions about using the portal? Click below to ask our AI assistant!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('teacher')">Open AI Guide</button>`;
                     break;
                 default:
                     titleEl.innerText = 'Coming Soon';
@@ -997,7 +1029,7 @@
                 { id: 'timetable', name: 'Class Timetable', icon: '<i class="fas fa-clock fa-fw mr-2"></i>' },
                 { id: 'announcements', name: 'Announcements', icon: '<i class="fas fa-bell fa-fw mr-2"></i>' },
                 { id: 'teachers', name: 'My Teachers', icon: '<i class="fas fa-chalkboard-teacher fa-fw mr-2"></i>' },
-                { id: 'gemini_tutor', name: 'Gemini Tutor', icon: '<i class="fas fa-brain fa-fw mr-2"></i>' },
+                { id: 'ai_tutor', name: 'AI Tutor', icon: '<i class="fas fa-brain fa-fw mr-2"></i>' },
             ];
             studentDashboard.innerHTML = renderSidebar(user, sections) + renderContentArea(user);
             attachSidebarListeners('student');
@@ -1012,6 +1044,10 @@
             const contentEl = document.getElementById('studentContent');
             const controlsEl = document.getElementById('studentHeaderControls');
             controlsEl.innerHTML = `<p class="text-sm text-slate-400">Your Key: <span class="font-mono bg-slate-700 px-2 py-1 rounded">${loggedInEntity.key}</span></p>`;
+
+            if (sectionId === 'announcements') {
+                lastSeenAnnouncementTimestamp = new Date().getTime();
+            }
 
             switch(sectionId) {
                 case 'performance':
@@ -1042,9 +1078,9 @@
                     titleEl.innerText = 'My Teachers';
                     contentEl.innerHTML = renderStudentTeachers();
                     break;
-                case 'gemini_tutor':
-                    titleEl.innerText = 'Gemini Tutor';
-                    contentEl.innerHTML = `<p>Have a question about your homework or a topic you're studying? Ask the Gemini Tutor!</p><button class="btn btn-primary mt-2" onclick="openGeminiAssistant('student')">Open Gemini Tutor</button>`;
+                case 'ai_tutor':
+                    titleEl.innerText = 'AI Tutor';
+                    contentEl.innerHTML = `<p>Have a question about your homework or a topic you're studying? Ask the AI Tutor!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('student')">Open AI Tutor</button>`;
                     break;
                 default:
                     titleEl.innerText = 'Coming Soon';
@@ -1167,7 +1203,7 @@
                 { id: 'attendance', name: "Child's Attendance", icon: '<i class="fas fa-user-check fa-fw mr-2"></i>' },
                 { id: 'pay_fees', name: 'Pay Fees', icon: '<i class="fas fa-qrcode fa-fw mr-2"></i>' },
                 { id: 'teachers', name: 'Contact Teachers', icon: '<i class="fas fa-chalkboard-teacher fa-fw mr-2"></i>' },
-                { id: 'gemini_assistant', name: 'Gemini Assistant', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' },
+                { id: 'ai_assistant', name: 'AI Assistant', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' },
             ];
             parentDashboard.innerHTML = renderSidebar(user, sections) + renderContentArea(user);
             attachSidebarListeners('parent');
@@ -1181,6 +1217,10 @@
             const titleEl = document.getElementById('parentSectionTitle');
             const contentEl = document.getElementById('parentContent');
             
+            if (sectionId === 'announcements') {
+                lastSeenAnnouncementTimestamp = new Date().getTime();
+            }
+
             switch(sectionId) {
                 case 'performance':
                     titleEl.innerText = "Child's Performance";
@@ -1198,9 +1238,9 @@
                     titleEl.innerText = 'Contact Teachers';
                     contentEl.innerHTML = renderStudentTeachers();
                     break;
-                case 'gemini_assistant':
-                    titleEl.innerText = 'Gemini Assistant';
-                    contentEl.innerHTML = `<p>Have questions about your child's progress or coaching centre policies? Ask our Gemini assistant!</p><button class="btn btn-primary mt-2" onclick="openGeminiAssistant('parent')">Open Gemini Assistant</button>`;
+                case 'ai_assistant':
+                    titleEl.innerText = 'AI Assistant';
+                    contentEl.innerHTML = `<p>Have questions about your child's progress or coaching centre policies? Ask our AI assistant!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('parent')">Open AI Assistant</button>`;
                     break;
                 default:
                     titleEl.innerText = 'Coming Soon';
@@ -1344,7 +1384,7 @@
                     <ul class="space-y-3">
                         ${announcements.length > 0 ? announcements.map((a, i) => `
                             <li class="bg-slate-700 p-3 rounded-lg">
-                                <p class="text-sm text-slate-400">To: ${a.section} on ${a.date}</p>
+                                <p class="text-sm text-slate-400">To: ${a.section} on ${new Date(a.date).toLocaleDateString()}</p>
                                 <p>${a.text}</p>
                                 <div class="mt-2 pt-2 border-t border-slate-600 flex gap-2">
                                     <button onclick="sendAnnouncementToAll('${a.text}')" class="btn btn-whatsapp text-sm">
@@ -1471,7 +1511,7 @@
         const postAnnouncement = (targetSection = activeSection) => {
             const text = document.getElementById('announcementText').value.trim();
             if (text) {
-                db.announcements.unshift({ text, section: targetSection, date: new Date().toLocaleDateString() });
+                db.announcements.unshift({ text, section: targetSection, date: new Date().getTime() });
                 showTeacherSection('announcements');
                 document.getElementById('announcementText').value = '';
                 showToast("New announcement posted!");
@@ -1561,9 +1601,9 @@
         const renderFeePayment = () => {
             const student = loggedInEntity;
             const upiId = "8302153208@yapl";
-            const amount = 5000; // Example fee amount
+            const amount = 21; // Updated fee amount
             const upiLink = `upi://pay?pa=${upiId}&pn=Hardik%20Bhandari&am=${amount}&cu=INR&tn=Fees for ${student.name}`;
-            const qrCodeUrl = "https://i.imgur.com/exampleQR.png"; // Replace with your actual QR code URL
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(upiLink)}`;
 
             return `
                 <div class="bg-slate-800 p-6 rounded-lg text-center">
@@ -1571,37 +1611,55 @@
                     <p class="text-lg mb-4">Amount Due: <span class="font-bold text-indigo-400">₹${amount.toLocaleString('en-IN')}</span></p>
                     <div id="paymentGateway">
                         <p class="text-slate-400 mb-6">1. Scan the QR or use the UPI app to pay.</p>
-                        <img src="${qrCodeUrl}" alt="Scan to Pay UPI QR Code" class="mx-auto rounded-lg mb-4 border-4 border-slate-700 w-64 h-64 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/256x256/1e293b/e2e8f0?text=QR+Code';">
+                        <img src="${qrCodeUrl}" alt="Scan to Pay UPI QR Code" class="mx-auto rounded-lg mb-4 border-4 border-slate-700 w-64 h-64 object-contain">
                         <p class="text-lg"><strong>UPI ID:</strong> <span class="font-mono bg-slate-700 px-2 py-1 rounded">${upiId}</span></p>
                         <a href="${upiLink}" class="btn btn-primary mt-4"><i class="fas fa-mobile-alt"></i> Pay with UPI App</a>
                     </div>
                     <div class="mt-8 border-t border-slate-700 pt-6">
                          <p class="text-slate-400 mb-4">2. After payment, enter the Transaction ID to get your receipt.</p>
                          <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-                            <input type="text" id="transactionIdInput" class="flex-grow bg-slate-700 p-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter UPI Transaction ID">
-                            <button onclick="verifyPayment('${student.roll}', ${amount})" class="btn btn-secondary"><i class="fas fa-check-circle"></i> Verify & Get Receipt</button>
+                            <input type="text" id="transactionIdInput" class="flex-grow bg-slate-700 p-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter 12-Digit UPI Transaction ID">
+                            <button id="verifyPaymentBtn" onclick="verifyPaymentWithAI('${student.roll}', ${amount})" class="btn btn-secondary"><i class="fas fa-check-circle"></i> Verify & Get Receipt</button>
                          </div>
                     </div>
                 </div>
             `;
         };
 
-        const verifyPayment = (roll, amount) => {
-            const transactionId = document.getElementById('transactionIdInput').value.trim();
-            if (!transactionId) {
-                showNotification("Please enter a valid Transaction ID from your UPI app.");
+        const verifyPaymentWithAI = (roll, amount) => {
+            const transactionIdInput = document.getElementById('transactionIdInput');
+            const transactionId = transactionIdInput.value.trim();
+            const verifyBtn = document.getElementById('verifyPaymentBtn');
+
+            // AI-powered validation: Check for a 12-digit UPI transaction ID format
+            const isValidFormat = /^\d{12}$/.test(transactionId);
+
+            if (!isValidFormat) {
+                showNotification("Invalid Transaction ID format. The AI requires the 12-digit ID from your UPI app.");
                 return;
             }
 
-            const { student } = findStudentByRoll(roll);
-            if (!student) return;
-            
-            student.fees = 'paid';
-            showNotification("Payment verified! Generating receipt...");
-            
+            // Simulate AI verification process
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> AI Verifying...`;
+
             setTimeout(() => {
+                const { student } = findStudentByRoll(roll);
+                if (!student) {
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = `<i class="fas fa-check-circle"></i> Verify & Get Receipt`;
+                    return;
+                }
+                
+                student.fees = 'paid';
+                showToast("Payment verified successfully!");
                 generateReceipt(student, amount, transactionId);
-            }, 1500);
+
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = `<i class="fas fa-check-circle"></i> Verify & Get Receipt`;
+                transactionIdInput.value = '';
+
+            }, 2000);
         };
 
         const generateReceipt = (student, amount, transactionId) => {
@@ -1684,12 +1742,23 @@
                 <ul class="space-y-3">
                     ${announcements.length > 0 ? announcements.map(a => `
                         <li class="bg-slate-800 p-4 rounded-lg">
-                            <p class="text-sm text-slate-400">Posted on ${a.date}</p>
+                            <p class="text-sm text-slate-400">Posted on ${new Date(a.date).toLocaleDateString()}</p>
                             <p class="mt-1">${a.text}</p>
                         </li>
                     `).join('') : '<p class="text-slate-500">No announcements.</p>'}
                 </ul>
             `;
+        };
+        
+        const checkForNewAnnouncements = () => {
+            if (db.announcements.length > 0) {
+                const latestTimestamp = db.announcements[0].date;
+                if (latestTimestamp > lastSeenAnnouncementTimestamp) {
+                     setTimeout(() => {
+                        showToast("A new announcement has been posted!");
+                     }, 1500);
+                }
+            }
         };
 
         // --- EVENT LISTENERS & INITIALIZATION ---
@@ -1704,22 +1773,22 @@
             });
         };
 
-        const openGeminiAssistant = (userType) => {
+        const openAIAssistant = (userType) => {
             loggedInUserType = userType;
             const title = {
-                'teacher': 'Gemini Website Guide',
-                'student': 'Gemini Academic Tutor',
-                'parent': 'Parent Gemini Assistant'
+                'teacher': 'AI Website Guide',
+                'student': 'AI Academic Tutor',
+                'parent': 'Parent AI Assistant'
             }[userType];
-            document.getElementById('geminiModalTitle').innerText = title;
-            geminiChatWindow.innerHTML = `<div class="chat-bubble assistant">Hello! How can I help you today?</div>`;
-            showModal(geminiAssistantModal);
+            document.getElementById('aiModalTitle').innerText = title;
+            aiChatWindow.innerHTML = `<div class="chat-bubble assistant">Hello! How can I help you today?</div>`;
+            showModal(aiAssistantModal);
         };
         
         const openPerformanceReport = (roll) => {
             const student = findStudentByRoll(roll).student;
             const reportContentEl = document.getElementById('reportContent');
-            reportContentEl.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-4xl text-indigo-400"></i><p class="mt-4">Generating Gemini-powered report...</p></div>`;
+            reportContentEl.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-4xl text-indigo-400"></i><p class="mt-4">Generating AI-powered report...</p></div>`;
             
             const teacherNotesSection = document.getElementById('teacherNotesSection');
             if (loggedInUserType === 'teacher') {
@@ -1731,7 +1800,7 @@
 
             showModal(reportModal);
 
-            // Simulated Gemini response for report generation
+            // Simulated AI response for report generation
             setTimeout(() => {
                 const performanceSummary = Object.entries(student.performance).map(([teacherId, scores]) => {
                     const teacher = db.teachers[activeSection].find(t => t.id === teacherId);
