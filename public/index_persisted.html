@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Coaching Centre Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: #1e293b;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slide-in 0.3s ease-out;
+            border: 1px solid #334155;
+        }
+        @keyframes slide-in {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            min-height: 100vh;
+        }
+        @media (min-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 280px 1fr;
+            }
+        }
+        .sidebar {
+            background-color: #1e293b;
+            padding: 1rem;
+        }
+        .content-area {
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        @media (min-width: 768px) {
+            .sidebar { padding: 2rem; }
+            .content-area { padding: 2rem; }
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Custom button styles */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-primary { background-color: #4f46e5; color: white; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #334155; color: white; }
+        .btn-secondary:hover { background-color: #475569; }
+        .btn-danger { background-color: #dc2626; color: white; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-whatsapp { background-color: #25D366; color: white; }
+        .btn-whatsapp:hover { background-color: #1DAE53; }
+        
+        /* Responsive Table */
+        .responsive-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .responsive-table thead {
+            display: none;
+        }
+        .responsive-table tr {
+            display: block;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            background-color: #334155;
+            padding: 1rem;
+        }
+        .responsive-table td {
+            display: block;
+            text-align: right;
+            position: relative;
+            padding-left: 50%;
+            border-bottom: 1px solid #475569;
+            margin-bottom: 0.5rem;
+        }
+        .responsive-table td:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .responsive-table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 0;
+            width: 45%;
+            padding-left: 1rem;
+            font-weight: 600;
+            text-align: left;
+            color: #94a3b8;
+        }
+        @media (min-width: 768px) {
+            .responsive-table thead { display: table-header-group; }
+            .responsive-table tr { display: table-row; margin-bottom: 0; border-radius: 0; background: none; padding: 0; }
+            .responsive-table td { display: table-cell; text-align: left; padding-left: 1.5rem; padding: 1rem; border-bottom: 1px solid #334155;}
+            .responsive-table td::before { display: none; }
+        }
+
+        /* Chat window styling */
+        .chat-window {
+            height: 60vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            padding: 1rem;
+            background-color: #0f172a;
+            border-radius: 0.5rem;
+        }
+        .chat-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+        .chat-bubble.user {
+            background-color: #4f46e5;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .chat-bubble.assistant {
+            background-color: #334155;
+            color: #e2e8f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Animated Background -->
+    <div class="fixed inset-0 -z-10 h-full w-full bg-slate-950">
+        <div class="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+        <div class="absolute left-0 right-0 top-[-10%] h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_400px_at_50%_300px,#fbfbfb36,#0f172a)]"></div>
+    </div>
+    
+    <!-- Login Page -->
+    <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-800/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-slate-700">
+            <h1 class="text-3xl font-bold text-center text-white mb-6">Coaching Centre Portal</h1>
+            <div class="space-y-4">
+                <select id="userTypeSelect" class="w-full bg-slate-700 p-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="parent">Parent</option>
+                </select>
+                <!-- Teacher Login -->
+                <div id="teacherLoginFields" class="hidden space-y-4">
+                    <input type="password" id="teacherPinInput" class="w-full bg-slate-700 p-3 rounded-lg" placeholder="Teacher PIN">
+                    <button id="teacherLoginBtn" class="btn btn-primary w-full">Login as Teacher</button>
+                </div>
+                <!-- Student Login -->
+                <div id="studentLoginFields" class="space-y-4">
+                    <input type="text" id="studentRollInput" class="w-full bg-slate-700 p-3 rounded-lg" placeholder="Student Roll Number (e.g., 12A-01)">
+                    <button id="studentLoginBtn" class="btn btn-primary w-full">Login as Student</button>
+                </div>
+                <!-- Parent Login -->
+                <div id="parentLoginFields" class="hidden space-y-4">
+                    <input type="text" id="parentRollInput" class="w-full bg-slate-700 p-3 rounded-lg" placeholder="Child's Roll Number">
+                    <button id="parentLoginBtn" class="btn btn-primary w-full">Login as Parent</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboards Container -->
+    <div id="teacherDashboard" class="dashboard-grid hidden"></div>
+    <div id="studentDashboard" class="dashboard-grid hidden"></div>
+    <div id="parentDashboard" class="dashboard-grid hidden"></div>
+
+    <!-- Modals -->
+    <div id="notificationModal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <p id="notificationText" class="text-lg mb-6"></p>
+            <button id="notificationCloseBtn" class="btn btn-primary">Close</button>
+        </div>
+    </div>
+    
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <p id="confirmationText" class="text-lg mb-6"></p>
+            <div class="flex justify-center gap-4">
+                <button id="confirmCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmActionBtn" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Student Performance Report</h2>
+            <div id="reportContentContainer" class="bg-slate-900 p-4 rounded-lg max-h-[60vh] overflow-y-auto text-slate-300 space-y-4">
+                <div id="reportContent"></div>
+            </div>
+            <div class="flex flex-wrap justify-end gap-2 mt-4">
+                <button id="reportCloseBtn" class="btn btn-secondary">Close</button>
+                <button id="downloadPdfBtn" class="btn btn-primary"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                <button id="sendReportWhatsAppBtn" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> Send via WhatsApp</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aiAssistantModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="aiModalTitle" class="text-2xl font-bold mb-4">AI Assistant</h2>
+            <div id="aiChatWindow" class="chat-window mb-4"></div>
+            <div class="flex gap-2">
+                <input type="text" id="aiChatInput" class="flex-grow bg-slate-900 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ask a question...">
+                <button id="sendAiChatBtn" class="btn btn-primary">Send</button>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button id="aiAssistantCloseBtn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="editPerformanceModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Edit Student Performance</h2>
+            <p id="editStudentName" class="text-lg font-semibold mb-4"></p>
+            <div id="editPerformanceForm" class="space-y-4"></div>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button id="editCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="editSaveBtn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="editStudentDetailsModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Edit Student Details</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-slate-400">Name</label>
+                    <input type="text" id="editDetailName" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-slate-400">Roll Number</label>
+                    <input type="text" id="editDetailRoll" class="w-full bg-slate-700 p-2 rounded-lg" readonly>
+                </div>
+                <div>
+                    <label class="block text-slate-400">Parent's Phone</label>
+                    <input type="text" id="editDetailParentPhone" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button id="editDetailCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="editDetailSaveBtn" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addStudentModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Add New Student</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-slate-400">Full Name</label>
+                    <input type="text" id="addStudentName" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+                 <div>
+                    <label class="block text-slate-400">Batch</label>
+                    <select id="addStudentSection" class="w-full bg-slate-700 p-2 rounded-lg">
+                        <option value="12A">12A</option>
+                        <option value="12B">12B</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-400">Parent's Phone (e.g., 91...)</label>
+                    <input type="text" id="addStudentParentPhone" class="w-full bg-slate-700 p-2 rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button onclick="hideModal(document.getElementById('addStudentModal'))" class="btn btn-secondary">Cancel</button>
+                <button onclick="addStudent()" class="btn btn-primary">Add Student</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- DATA STORE ---
+        let db = {
+            teachers: {
+                '12A': [
+                    { id: 'T01', name: 'Mudit Jain', subject: 'Mathematics', pin: '1234', whatsapp: '919876543210', isFeeManager: true },
+                    { id: 'T02', name: 'Hardik Sharma', subject: 'Physics', pin: '5678', whatsapp: '919876543211', isFeeManager: false }
+                ],
+                '12B': [
+                    { id: 'T03', name: 'Rajesh Kumar', subject: 'History', pin: '1111', whatsapp: '919876543212', isFeeManager: true },
+                    { id: 'T04', name: 'Ananya Singh', subject: 'English', pin: '2222', whatsapp: '919876543213', isFeeManager: false }
+                ],
+            },
+            students: { '12A': [], '12B': [] },
+            announcements: [],
+            materials: { '12A': [], '12B': [] },
+            timetables: { '12A': [], '12B': [] }
+        };
+
+        // --- PERSISTENCE HELPERS ---
+        const DB_KEY = 'coaching_portal_db_v2';
+        const saveDB = () => { try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e){ console.warn('saveDB failed', e);} };
+        const loadDB = () => { try { const raw = localStorage.getItem(DB_KEY); return raw ? JSON.parse(raw) : null; } catch(e){ console.warn('loadDB failed', e); return null; } };
+
+        // --- DATE HELPERS & UI STATE ---
+        const todayISO = () => new Date().toISOString().slice(0,10); // YYYY-MM-DD
+        const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+        let selectedAttendanceDate = todayISO();
+        let teacherSearchQuery = '';
+
+        // --- RANDOM DATA GENERATION (date-based attendance) ---
+        const generateRandomData = () => {
+            const firstNames = ["Aarav","Vivaan","Aditya","Vihaan","Arjun","Sai","Reyansh","Ayaan","Krishna","Ishaan","Saanvi","Aadya","Kiara","Diya","Pihu","Ananya","Fatima","Myra","Anika","Aarohi"];
+            const lastNames  = ["Sharma","Verma","Gupta","Singh","Kumar","Patel","Shah","Khan","Das","Jain"];
+            const sections = ['12A','12B'];
+            let rollCounters = {'12A':0,'12B':0};
+
+            // last 10 days
+            const days = Array.from({length:10}, (_,i)=> addDays(todayISO(), -i));
+
+            for (let i = 0; i < 50; i++) {
+                const section = sections[i % 2];
+                rollCounters[section]++;
+                const roll = `${section}-${String(rollCounters[section]).padStart(2,'0')}`;
+
+                const firstName = firstNames[Math.floor(Math.random()*firstNames.length)];
+                const lastName  = lastNames[Math.floor(Math.random()*lastNames.length)];
+                const name = `${firstName} ${lastName}`;
+                const parentPhone = `919${String(Math.floor(Math.random()*1000000000)).padStart(9,'0')}`;
+                const key = `${firstName.charAt(0)}${lastName.charAt(0)}${section}${rollCounters[section]}${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+                const fees = Math.random() > 0.3 ? 'paid' : 'due';
+
+                let attendance = {};
+                let performance = {};
+                const sectionTeachers = db.teachers[section];
+
+                sectionTeachers.forEach(teacher => {
+                    // date-based attendance: newest first
+                    attendance[teacher.id] = days.map(d => ({
+                        date: d,
+                        status: Math.random() > 0.15 ? 'P' : 'A'
+                    }));
+
+                    const subject = teacher.subject.toLowerCase();
+                    performance[teacher.id] = { [subject]: Math.floor(Math.random()*50)+51 };
+                });
+
+                db.students[section].push({ roll, name, parentPhone, key, attendance, fees, performance });
+            }
+
+            // sample materials/timetables/announcements
+            db.materials['12A'].push({ title:"Ch. 1 - Advanced Functions Notes", link:"#"});
+            db.materials['12A'].push({ title:"Worksheet - The Laws of Thermodynamics", link:"#"});
+            db.materials['12B'].push({ title:"Reading - The Mughal Empire", link:"#"});
+            db.materials['12B'].push({ title:"Guide - Writing a Persuasive Essay", link:"#"});
+            db.timetables['12A'] = [
+                { day:"Monday", time:"9:00 AM", subject:"Mathematics" },
+                { day:"Monday", time:"10:00 AM", subject:"Physics" },
+                { day:"Tuesday", time:"9:00 AM", subject:"Physics" },
+                { day:"Wednesday", time:"11:00 AM", subject:"Mathematics" },
+            ];
+            db.timetables['12B'] = [
+                { day:"Monday", time:"9:00 AM", subject:"History" },
+                { day:"Monday", time:"10:00 AM", subject:"English" },
+                { day:"Tuesday", time:"9:00 AM", subject:"English" },
+                { day:"Wednesday", time:"11:00 AM", subject:"History" },
+            ];
+            db.announcements.push({ text:"The annual mock test series will begin next Friday. All students are requested to prepare accordingly.", section:"all", date:new Date().toLocaleDateString() });
+            db.announcements.push({ text:"Parent-teacher meeting for batch 12A is scheduled for this Saturday at 10 AM.", section:"12A", date:new Date().toLocaleDateString() });
+        };
+
+        // BOOT: load or seed
+        const existing = loadDB();
+        if (existing) { db = existing; } else { generateRandomData(); saveDB(); }
+
+        // --- GLOBAL STATE ---
+        let loggedInUserType = null;
+        let loggedInEntity = null; // teacher, student, or parent's child
+        let activeSection = '12A';
+        let studentToEdit = null;
+        let generatedReportText = '';
+
+        // --- DOM ELEMENTS ---
+        const loginPage = document.getElementById('loginPage');
+        const teacherDashboard = document.getElementById('teacherDashboard');
+        const studentDashboard = document.getElementById('studentDashboard');
+        const parentDashboard = document.getElementById('parentDashboard');
+        const notificationModal = document.getElementById('notificationModal');
+        const confirmationModal = document.getElementById('confirmationModal');
+        const reportModal = document.getElementById('reportModal');
+        const aiAssistantModal = document.getElementById('aiAssistantModal');
+        const editPerformanceModal = document.getElementById('editPerformanceModal');
+        const editStudentDetailsModal = document.getElementById('editStudentDetailsModal');
+        const addStudentModal = document.getElementById('addStudentModal');
+
+        // --- UTILITY FUNCTIONS ---
+        const showModal = (modal) => modal.style.display = 'flex';
+        const hideModal = (modal) => modal.style.display = 'none';
+        
+        const showNotification = (message) => {
+            document.getElementById('notificationText').innerText = message;
+            showModal(notificationModal);
+        };
+        
+        const showConfirmation = (message, onConfirm) => {
+            document.getElementById('confirmationText').innerText = message;
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+            
+            // Clone and replace to drop old listeners
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+            newConfirmBtn.onclick = () => { onConfirm(); hideModal(confirmationModal); };
+            cancelBtn.onclick = () => hideModal(confirmationModal);
+            showModal(confirmationModal);
+        };
+        
+        // --- PDF & WHATSAPP ---
+        const downloadPdf = (elementId, fileName) => {
+            const sourceElement = document.getElementById(elementId);
+            if (!sourceElement) { showNotification("Error: Could not find content to generate PDF."); return; }
+
+            const btn = document.getElementById('downloadPdfBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Generating...`;
+
+            const renderElement = document.createElement('div');
+            renderElement.style.width = '210mm';
+            renderElement.style.padding = '20px';
+            renderElement.style.color = '#e2e8f0';
+            renderElement.style.backgroundColor = '#1e293b';
+            renderElement.style.fontFamily = "'Inter', sans-serif";
+            renderElement.innerHTML = sourceElement.innerHTML.replace(/<pre.*?>/g, '<div style="white-space: pre-wrap; font-family: sans-serif;">').replace(/<\/pre>/g, '</div>');
+            document.body.appendChild(renderElement);
+
+            html2canvas(renderElement, { scale: 2 }).then(canvas => {
+                document.body.removeChild(renderElement);
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const imgData = canvas.toDataURL('image/png');
+                const imgProps = doc.getImageProperties(imgData);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                let heightLeft = pdfHeight;
+                let position = 0;
+                const pageHeight = doc.internal.pageSize.getHeight();
+
+                doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft > 0) {
+                    position = -heightLeft;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                doc.save(fileName);
+
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-file-pdf"></i> Download PDF`;
+            }).catch(err => {
+                document.body.removeChild(renderElement);
+                showNotification("PDF generation failed. Please try again.");
+                console.error("html2canvas error:", err);
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-file-pdf"></i> Download PDF`;
+            });
+        };
+
+        const sendWhatsAppDeepLink = (phone, message) => {
+            if (!phone) { showNotification("Phone number is not available."); return; }
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        };
+
+        async function sendWhatsAppOfficial(phone, text) {
+            try {
+                const r = await fetch(`/api/whatsapp/send`, {
+                    method: "POST",
+                    headers: { "Content-Type":"application/json" },
+                    body: JSON.stringify({ to: phone, text })
+                });
+                const data = await r.json();
+                if (!r.ok) throw new Error(data.error || "API failed");
+                showNotification("WhatsApp message sent successfully!");
+            } catch (e) {
+                console.error("WhatsApp API Error:", e.message);
+                showNotification(`Could not send message via Server. Opening WhatsApp app...`);
+                sendWhatsAppDeepLink(phone, text);
+            }
+        }
+    
+        // --- LOGIN LOGIC ---
+        document.getElementById('userTypeSelect').addEventListener('change', (e) => {
+            ['teacherLoginFields', 'studentLoginFields', 'parentLoginFields'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(`${e.target.value}LoginFields`).classList.remove('hidden');
+        });
+
+        const findStudentByRoll = (roll) => {
+            for (const section in db.students) {
+                const student = db.students[section].find(s => s.roll.toUpperCase() === roll.toUpperCase());
+                if (student) return { student, section };
+            }
+            return null;
+        };
+        
+        const findTeacherByPin = (pin) => {
+             for (const section in db.teachers) {
+                const teacher = db.teachers[section].find(t => t.pin === pin);
+                if (teacher) return { teacher, section };
+            }
+            return null;
+        }
+
+        document.getElementById('teacherLoginBtn').addEventListener('click', () => {
+            const pin = document.getElementById('teacherPinInput').value;
+            const result = findTeacherByPin(pin);
+            if (result) {
+                loggedInUserType = 'teacher';
+                loggedInEntity = result.teacher;
+                activeSection = result.section;
+                loginPage.classList.add('hidden');
+                renderTeacherDashboard();
+                teacherDashboard.classList.remove('hidden');
+            } else {
+                showNotification('Invalid PIN.');
+            }
+        });
+
+        document.getElementById('studentLoginBtn').addEventListener('click', () => {
+            const roll = document.getElementById('studentRollInput').value;
+            const result = findStudentByRoll(roll);
+            if (result) {
+                loggedInUserType = 'student';
+                loggedInEntity = result.student;
+                activeSection = result.section;
+                loginPage.classList.add('hidden');
+                renderStudentDashboard();
+                studentDashboard.classList.remove('hidden');
+            } else {
+                showNotification('Student not found.');
+            }
+        });
+
+        document.getElementById('parentLoginBtn').addEventListener('click', () => {
+            const roll = document.getElementById('parentRollInput').value;
+            const result = findStudentByRoll(roll);
+            if (result) {
+                loggedInUserType = 'parent';
+                loggedInEntity = result.student;
+                activeSection = result.section;
+                loginPage.classList.add('hidden');
+                renderParentDashboard();
+                parentDashboard.classList.remove('hidden');
+            } else {
+                showNotification('Child not found.');
+            }
+        });
+
+        const logout = () => {
+            loggedInUserType = null;
+            loggedInEntity = null;
+            [teacherDashboard, studentDashboard, parentDashboard].forEach(d => d.classList.add('hidden'));
+            loginPage.classList.remove('hidden');
+        };
+
+        // --- AI ASSISTANT LOGIC ---
+        const aiChatWindow = document.getElementById('aiChatWindow');
+        const aiChatInput = document.getElementById('aiChatInput');
+        
+        const addMessageToChat = (message, sender) => {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${sender}`;
+            bubble.innerText = message;
+            aiChatWindow.appendChild(bubble);
+            aiChatWindow.scrollTop = aiChatWindow.scrollHeight;
+        };
+
+        const handleAIChat = async () => {
+            const userQuery = aiChatInput.value.trim();
+            if (!userQuery) return;
+            addMessageToChat(userQuery, 'user');
+            aiChatInput.value = '';
+            addMessageToChat('Thinking...', 'assistant');
+
+            let contextPrompt = '';
+            if (loggedInUserType === 'student') {
+                contextPrompt = `You are a helpful AI tutor for a high school student. The student has a question: "${userQuery}". Please provide a clear, concise, and helpful answer suitable for a high school level.`;
+            } else if (loggedInUserType === 'teacher') {
+                contextPrompt = `You are an AI guide for a teacher using a coaching centre management portal. The portal features are: Student Performance, Attendance, Fees, Materials, Timetable, and Announcements. The teacher asks: "${userQuery}". Explain how to use the relevant feature to address their question.`;
+            } else if (loggedInUserType === 'parent') {
+                const student = loggedInEntity;
+                contextPrompt = `You are an AI assistant for a parent. The parent is asking about their child, ${student.name}. Here is some of their data: ${JSON.stringify(student.performance)}, Attendance records exist. The parent's question is: "${userQuery}". Answer the question based on this data in a friendly and supportive tone.`;
+            }
+
+            try {
+                const response = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: contextPrompt })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || `API request failed with status ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                aiChatWindow.removeChild(aiChatWindow.lastChild);
+                if (result.ok && result.text) {
+                    addMessageToChat(result.text, 'assistant');
+                } else {
+                    throw new Error("Invalid response structure from server.");
+                }
+
+            } catch (error) {
+                console.error("AI Assistant Error:", error);
+                aiChatWindow.removeChild(aiChatWindow.lastChild);
+                addMessageToChat(`Sorry, I'm having trouble connecting right now. Error: ${error.message}`, 'assistant');
+            }
+        };
+
+        document.getElementById('sendAiChatBtn').addEventListener('click', handleAIChat);
+        aiChatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleAIChat());
+        document.getElementById('aiAssistantCloseBtn').addEventListener('click', () => hideModal(aiAssistantModal));
+
+        // --- RENDER FUNCTIONS ---
+        const renderSidebar = (user, sections) => {
+            let welcome = '';
+            if (user.type === 'teacher') welcome = `Welcome, ${user.entity.name}`;
+            if (user.type === 'student') welcome = `Hello, ${user.entity.name}`;
+            if (user.type === 'parent') welcome = `For ${user.entity.name}`;
+
+            return `
+                <div class="sidebar flex flex-col h-full">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">${user.title}</h2>
+                        <p class="text-slate-400 mb-6">${welcome}</p>
+                    </div>
+                    <nav class="flex-grow space-y-2">
+                        ${sections.map(s => `<button class="w-full text-left p-3 rounded-lg hover:bg-slate-700 transition sidebar-btn" data-section="${s.id}">${s.icon} ${s.name}</button>`).join('')}
+                    </nav>
+                    <div>
+                        <button onclick="logout()" class="w-full text-left p-3 rounded-lg hover:bg-red-500/20 text-red-400 transition">
+                            <i class="fas fa-sign-out-alt fa-fw mr-2"></i>Logout
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+        
+        const renderContentArea = (user) => {
+             return `
+                <div class="content-area">
+                    <div class="flex justify-between items-center mb-6">
+                        <h1 id="${user.type}SectionTitle" class="text-3xl font-bold text-white"></h1>
+                        <div id="${user.type}HeaderControls"></div>
+                    </div>
+                    <div id="${user.type}Content" class="space-y-6"></div>
+                </div>
+            `;
+        };
+
+        // --- TEACHER DASHBOARD ---
+        const renderTeacherDashboard = () => {
+            const user = { type: 'teacher', title: 'Teacher Dashboard', entity: loggedInEntity };
+            let sections = [
+                { id: 'details', name: 'Student Details', icon: '<i class="fas fa-user-edit fa-fw mr-2"></i>' },
+                { id: 'performance', name: 'Performance', icon: '<i class="fas fa-chart-line fa-fw mr-2"></i>' },
+                { id: 'attendance', name: 'Attendance', icon: '<i class="fas fa-user-check fa-fw mr-2"></i>' },
+                { id: 'fees', name: 'Fees', icon: '<i class="fas fa-dollar-sign fa-fw mr-2"></i>' },
+                { id: 'materials', name: 'Materials', icon: '<i class="fas fa-book fa-fw mr-2"></i>' },
+                { id: 'timetable', name: 'Timetable', icon: '<i class="fas fa-calendar-alt fa-fw mr-2"></i>' },
+                { id: 'announcements', name: 'Announcements', icon: '<i class="fas fa-bullhorn fa-fw mr-2"></i>' },
+                { id: 'ai_guide', name: 'AI Guide', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' }
+            ];
+
+            if (!loggedInEntity.isFeeManager) {
+                sections = sections.filter(sec => sec.id !== 'fees');
+            }
+
+            teacherDashboard.innerHTML = renderSidebar(user, sections) + renderContentArea(user);
+            attachSidebarListeners('teacher');
+            showTeacherSection('details');
+        };
+
+        const showTeacherSection = (sectionId) => {
+            document.querySelectorAll('#teacherDashboard .sidebar-btn').forEach(btn => btn.classList.remove('bg-slate-700'));
+            document.querySelector(`#teacherDashboard [data-section="${sectionId}"]`).classList.add('bg-slate-700');
+            
+            const titleEl = document.getElementById('teacherSectionTitle');
+            const contentEl = document.getElementById('teacherContent');
+            const controlsEl = document.getElementById('teacherHeaderControls');
+            
+            controlsEl.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <label for="sectionSelect" class="text-slate-400">Batch:</label>
+                    <select id="sectionSelect" class="bg-slate-700 p-2 rounded-lg text-white">
+                        ${Object.keys(db.teachers).map(s => `<option value="${s}" ${s === activeSection ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </div>`;
+            document.getElementById('sectionSelect').addEventListener('change', (e) => {
+                activeSection = e.target.value;
+                showTeacherSection(sectionId);
+            });
+
+            switch(sectionId) {
+                case 'details':
+                    titleEl.innerText = 'Student Details';
+                    contentEl.innerHTML = renderStudentDetailsTable();
+                    break;
+                case 'performance':
+                    titleEl.innerText = 'Student Performance';
+                    contentEl.innerHTML = renderPerformanceTable();
+                    break;
+                case 'attendance':
+                    titleEl.innerText = 'Mark Attendance';
+                    contentEl.innerHTML = renderAttendanceTable();
+                    break;
+                case 'fees':
+                    if (loggedInEntity.isFeeManager) {
+                        titleEl.innerText = 'Manage Fees';
+                        contentEl.innerHTML = renderFeesTable();
+                    }
+                    break;
+                case 'materials':
+                    titleEl.innerText = 'Class Materials';
+                    contentEl.innerHTML = renderMaterialsManager();
+                    break;
+                case 'timetable':
+                    titleEl.innerText = 'Class Timetable';
+                    contentEl.innerHTML = renderTimetableManager();
+                    break;
+                case 'announcements':
+                    titleEl.innerText = 'Post Announcements';
+                    contentEl.innerHTML = renderAnnouncementsManager();
+                    break;
+                case 'ai_guide':
+                    titleEl.innerText = 'AI Guide';
+                    contentEl.innerHTML = `<p>Have questions about using the portal? Click below to ask our AI assistant!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('teacher')">Open AI Guide</button>`;
+                    break;
+                default:
+                    titleEl.innerText = 'Coming Soon';
+                    contentEl.innerHTML = '<p>This feature is under construction.</p>';
+            }
+        };
+        
+        const renderPerformanceTable = () => {
+            const students = db.students[activeSection] || [];
+            if (students.length === 0) return '<p>No students in this batch.</p>';
+            
+            return `
+                <div class="overflow-x-auto bg-slate-800 p-4 rounded-lg">
+                    <table class="responsive-table">
+                        <thead>
+                            <tr>
+                                <th class="p-4 text-left">Name</th>
+                                <th class="p-4 text-left">Roll No</th>
+                                <th class="p-4 text-left">Performance</th>
+                                <th class="p-4 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${students.map(s => `
+                                <tr>
+                                    <td data-label="Name">${s.name}</td>
+                                    <td data-label="Roll No">${s.roll}</td>
+                                    <td data-label="Performance">
+                                        <ul class="list-disc list-inside">
+                                        ${Object.entries(s.performance).map(([teacherId, scores]) => {
+                                            const teacher = db.teachers[activeSection].find(t => t.id === teacherId);
+                                            return Object.entries(scores).map(([subject, score]) => `<li>${subject} (${teacher ? teacher.name.split(' ')[0] : '—'}): ${score}</li>`).join('');
+                                        }).join('')}
+                                        </ul>
+                                    </td>
+                                    <td data-label="Actions" class="space-x-2">
+                                        <button onclick="openPerformanceEdit('${s.roll}')" class="btn btn-secondary text-sm"><i class="fas fa-edit"></i></button>
+                                        <button onclick="openPerformanceReport('${s.roll}')" class="btn btn-secondary text-sm"><i class="fas fa-file-alt"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
+
+        // --- Attendance with date selector ---
+        const renderAttendanceTable = () => {
+          const students = db.students[activeSection] || [];
+          const teacherId = loggedInEntity.id;
+          if (students.length === 0) return '<p>No students in this batch.</p>';
+
+          const dateControl = `
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <label class="text-slate-400">Date:</label>
+              <input type="date" id="attendanceDatePicker" class="bg-slate-700 p-2 rounded-lg text-white" value="${selectedAttendanceDate}">
+              <button onclick="sendBulkAbsentReminders()" class="btn btn-whatsapp">
+                <i class="fab fa-whatsapp"></i> Notify All Absent (Selected Date)
+              </button>
+            </div>
+          `;
+
+          const rows = students.map(s => {
+            const recs = s.attendance[teacherId] || [];
+            const rec = recs.find(r => r.date === selectedAttendanceDate);
+            const st = rec ? rec.status : 'N/A';
+            const statusClass = st === 'P' ? 'bg-green-500/20 text-green-400'
+                              : st === 'A' ? 'bg-red-500/20 text-red-400'
+                              : 'bg-slate-600 text-slate-300';
+            const waBtn = (st === 'A')
+              ? `<button onclick="sendWhatsAppOfficial('${s.parentPhone}', 'Dear Parent, your child ${s.name} was absent on ${selectedAttendanceDate} for ${loggedInEntity.subject} class.')" class="btn btn-whatsapp text-sm"><i class="fab fa-whatsapp"></i></button>`
+              : '';
+
+            return `
+              <tr>
+                <td data-label="Name">${s.name}</td>
+                <td data-label="Roll No">${s.roll}</td>
+                <td data-label="Status">
+                  <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${st}</span>
+                </td>
+                <td data-label="Actions" class="space-x-2">
+                  <button onclick="markAttendance('${s.roll}', 'P')" class="btn btn-secondary text-sm ${st === 'P' ? 'bg-green-500' : ''}">P</button>
+                  <button onclick="markAttendance('${s.roll}', 'A')" class="btn btn-secondary text-sm ${st === 'A' ? 'bg-red-500' : ''}">A</button>
+                  ${waBtn}
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          setTimeout(() => {
+            const dp = document.getElementById('attendanceDatePicker');
+            if (dp) dp.addEventListener('change', (e) => {
+              selectedAttendanceDate = e.target.value || todayISO();
+              showTeacherSection('attendance');
+            });
+          }, 0);
+
+          return `
+            <div class="overflow-x-auto bg-slate-800 p-4 rounded-lg">
+              <p class="text-slate-400 mb-2">You are marking attendance for your subject: ${loggedInEntity.subject}</p>
+              ${dateControl}
+              <table class="responsive-table">
+                <thead>
+                  <tr>
+                    <th class="p-4 text-left">Name</th>
+                    <th class="p-4 text-left">Roll No</th>
+                    <th class="p-4 text-left">Status (${selectedAttendanceDate})</th>
+                    <th class="p-4 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          `;
+        };
+
+        const markAttendance = (roll, status) => {
+          const student = db.students[activeSection].find(s => s.roll === roll);
+          const teacherId = loggedInEntity.id;
+          if (!student) return;
+          if (!student.attendance[teacherId]) student.attendance[teacherId] = [];
+          const recs = student.attendance[teacherId];
+          const i = recs.findIndex(r => r.date === selectedAttendanceDate);
+          if (i >= 0) recs[i].status = status;
+          else recs.unshift({ date: selectedAttendanceDate, status });
+          saveDB();
+          showTeacherSection('attendance');
+        };
+        
+        const openPerformanceEdit = (roll) => {
+            studentToEdit = findStudentByRoll(roll).student;
+            const form = document.getElementById('editPerformanceForm');
+            document.getElementById('editStudentName').innerText = `Editing: ${studentToEdit.name}`;
+            
+            form.innerHTML = Object.entries(studentToEdit.performance).map(([teacherId, scores]) => {
+                const teacher = db.teachers[activeSection].find(t => t.id === teacherId);
+                return Object.entries(scores).map(([subject, score]) => `
+                    <div>
+                        <label class="block text-slate-400">${subject} (${teacher ? teacher.name : '—'})</label>
+                        <input type="number" class="w-full bg-slate-700 p-2 rounded-lg" value="${score}" data-teacher="${teacherId}" data-subject="${subject}">
+                    </div>
+                `).join('');
+            }).join('');
+
+            showModal(editPerformanceModal);
+        };
+
+        document.getElementById('editSaveBtn').addEventListener('click', () => {
+            if (!studentToEdit) return;
+            document.querySelectorAll('#editPerformanceForm input').forEach(input => {
+                const teacherId = input.dataset.teacher;
+                const subject = input.dataset.subject;
+                studentToEdit.performance[teacherId][subject] = parseInt(input.value);
+            });
+            saveDB();
+            hideModal(editPerformanceModal);
+            showTeacherSection('performance');
+            showNotification("Performance updated!");
+        });
+        document.getElementById('editCancelBtn').addEventListener('click', () => hideModal(editPerformanceModal));
+
+
+        // --- STUDENT DASHBOARD ---
+        const renderStudentDashboard = () => {
+            const user = { type: 'student', title: 'Student Dashboard', entity: loggedInEntity };
+            const sections = [
+                { id: 'performance', name: 'My Performance', icon: '<i class="fas fa-chart-pie fa-fw mr-2"></i>' },
+                { id: 'attendance', name: 'My Attendance', icon: '<i class="fas fa-calendar-check fa-fw mr-2"></i>' },
+                { id: 'pay_fees', name: 'Pay Fees', icon: '<i class="fas fa-qrcode fa-fw mr-2"></i>' },
+                { id: 'materials', name: 'Class Materials', icon: '<i class="fas fa-book-open fa-fw mr-2"></i>' },
+                { id: 'timetable', name: 'Class Timetable', icon: '<i class="fas fa-clock fa-fw mr-2"></i>' },
+                { id: 'announcements', name: 'Announcements', icon: '<i class="fas fa-bell fa-fw mr-2"></i>' },
+                { id: 'teachers', name: 'My Teachers', icon: '<i class="fas fa-chalkboard-teacher fa-fw mr-2"></i>' },
+                { id: 'ai_tutor', name: 'AI Tutor', icon: '<i class="fas fa-brain fa-fw mr-2"></i>' },
+            ];
+            studentDashboard.innerHTML = renderSidebar(user, sections) + renderContentArea(user);
+            attachSidebarListeners('student');
+            showStudentSection('performance');
+        };
+
+        const showStudentSection = (sectionId) => {
+            document.querySelectorAll('#studentDashboard .sidebar-btn').forEach(btn => btn.classList.remove('bg-slate-700'));
+            document.querySelector(`#studentDashboard [data-section="${sectionId}"]`).classList.add('bg-slate-700');
+            
+            const titleEl = document.getElementById('studentSectionTitle');
+            const contentEl = document.getElementById('studentContent');
+            const controlsEl = document.getElementById('studentHeaderControls');
+            controlsEl.innerHTML = `<p class="text-sm text-slate-400">Your Key: <span class="font-mono bg-slate-700 px-2 py-1 rounded">${loggedInEntity.key}</span></p>`;
+
+            switch(sectionId) {
+                case 'performance':
+                    titleEl.innerText = 'My Performance';
+                    contentEl.innerHTML = renderStudentPerformance();
+                    break;
+                case 'attendance':
+                    titleEl.innerText = 'My Attendance';
+                    contentEl.innerHTML = renderStudentAttendance();
+                    break;
+                case 'pay_fees':
+                    titleEl.innerText = 'Pay Fees';
+                    contentEl.innerHTML = renderFeePayment();
+                    break;
+                case 'materials':
+                    titleEl.innerText = 'Class Materials';
+                    contentEl.innerHTML = renderStudentMaterials();
+                    break;
+                case 'timetable':
+                    titleEl.innerText = 'Class Timetable';
+                    contentEl.innerHTML = renderStudentTimetable();
+                    break;
+                case 'announcements':
+                    titleEl.innerText = 'Announcements';
+                    contentEl.innerHTML = renderStudentAnnouncements();
+                    break;
+                case 'teachers':
+                    titleEl.innerText = 'My Teachers';
+                    contentEl.innerHTML = renderStudentTeachers()
+                    break;
+                case 'ai_tutor':
+                    titleEl.innerText = 'AI Tutor';
+                    contentEl.innerHTML = `<p>Have a question about your homework or a topic you're studying? Ask the AI Tutor!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('student')">Open AI Tutor</button>`;
+                    break;
+                default:
+                    titleEl.innerText = 'Coming Soon';
+                    contentEl.innerHTML = '<p>This feature is under construction.</p>';
+            }
+        };
+
+        const renderStudentPerformance = () => {
+            const student = loggedInEntity;
+            const teachers = db.teachers[activeSection];
+            let totalScore = 0;
+            let subjectCount = 0;
+
+            const individualStats = teachers.map(teacher => {
+                const scores = student.performance[teacher.id];
+                if (!scores) return '';
+                return `
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-bold mb-2">${teacher.subject} <span class="text-sm font-normal text-slate-400">(with ${teacher.name})</span></h3>
+                        ${Object.entries(scores).map(([subject, score]) => {
+                            totalScore += score;
+                            subjectCount++;
+                            return `<p>${subject.charAt(0).toUpperCase() + subject.slice(1)}: <span class="font-bold text-indigo-400">${score}</span></p>`
+                        }).join('')}
+                    </div>
+                `
+            }).join('');
+
+            const average = subjectCount > 0 ? (totalScore / subjectCount).toFixed(2) : 'N/A';
+
+            return `
+                <div class="space-y-4">
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <h3 class="text-2xl font-bold">Overall Average</h3>
+                        <p class="text-4xl font-bold text-indigo-400">${average}</p>
+                    </div>
+                    <h3 class="text-2xl font-bold mt-6">Individual Subject Performance</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        ${individualStats}
+                    </div>
+                    <button onclick="openPerformanceReport('${student.roll}')" class="btn btn-primary mt-4">Generate Detailed Report</button>
+                </div>
+            `;
+        };
+        
+        const renderStudentAttendance = () => {
+            const student = loggedInEntity;
+            const teachers = db.teachers[activeSection];
+
+            const attendanceByTeacher = teachers.map(teacher => {
+                const history = student.attendance[teacher.id] || [];
+                const present = history.filter(r => r.status === 'P').length;
+                const absent = history.filter(r => r.status === 'A').length;
+                const total = history.length;
+                const percentage = total > 0 ? ((present / total) * 100).toFixed(0) : 'N/A';
+
+                return `
+                    <div class="bg-slate-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-bold mb-2">${teacher.subject} <span class="text-sm font-normal text-slate-400">(with ${teacher.name})</span></h3>
+                        <p>Percentage: <span class="font-bold text-lg ${percentage > 75 ? 'text-green-400' : 'text-yellow-400'}">${percentage}%</span></p>
+                        <p class="text-sm text-slate-400">Present: ${present}, Absent: ${absent}</p>
+                    </div>
+                `;
+            }).join('');
+            
+            return `<div class="grid md:grid-cols-2 gap-4">${attendanceByTeacher}</div>`;
+        };
+
+        const renderStudentTeachers = () => {
+            const teachers = db.teachers[activeSection];
+            return `
+                <div class="grid md:grid-cols-2 gap-4">
+                    ${teachers.map(t => `
+                        <div class="bg-slate-800 p-4 rounded-lg">
+                            <h3 class="text-xl font-bold">${t.name}</h3>
+                            <p class="text-indigo-400">${t.subject}</p>
+                            <button onclick="sendWhatsAppOfficial('${t.whatsapp}', 'Hello ${t.name}, this is ${loggedInEntity.name}.')" class="btn btn-whatsapp mt-4 text-sm"><i class="fab fa-whatsapp"></i> Message</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        };
+
+        // --- PARENT DASHBOARD ---
+        const renderParentDashboard = () => {
+            const user = { type: 'parent', title: 'Parent Dashboard', entity: loggedInEntity };
+            const sections = [
+                { id: 'performance', name: "Child's Performance", icon: '<i class="fas fa-chart-line fa-fw mr-2"></i>' },
+                { id: 'attendance', name: "Child's Attendance", icon: '<i class="fas fa-user-check fa-fw mr-2"></i>' },
+                { id: 'pay_fees', name: 'Pay Fees', icon: '<i class="fas fa-qrcode fa-fw mr-2"></i>' },
+                { id: 'teachers', name: 'Contact Teachers', icon: '<i class="fas fa-chalkboard-teacher fa-fw mr-2"></i>' },
+                { id: 'ai_assistant', name: 'AI Assistant', icon: '<i class="fas fa-robot fa-fw mr-2"></i>' },
+            ];
+            parentDashboard.innerHTML = renderSidebar(user, sections) + renderContentArea(user);
+            attachSidebarListeners('parent');
+            showParentSection('performance');
+        };
+
+        const showParentSection = (sectionId) => {
+            document.querySelectorAll('#parentDashboard .sidebar-btn').forEach(btn => btn.classList.remove('bg-slate-700'));
+            document.querySelector(`#parentDashboard [data-section="${sectionId}"]`).classList.add('bg-slate-700');
+            
+            const titleEl = document.getElementById('parentSectionTitle');
+            const contentEl = document.getElementById('parentContent');
+            
+            switch(sectionId) {
+                case 'performance':
+                    titleEl.innerText = "Child's Performance";
+                    contentEl.innerHTML = renderStudentPerformance();
+                    break;
+                case 'attendance':
+                    titleEl.innerText = "Child's Attendance";
+                    contentEl.innerHTML = renderStudentAttendance();
+                    break;
+                case 'pay_fees':
+                    titleEl.innerText = 'Pay Fees';
+                    contentEl.innerHTML = renderFeePayment();
+                    break;
+                case 'teachers':
+                    titleEl.innerText = 'Contact Teachers';
+                    contentEl.innerHTML = renderStudentTeachers();
+                    break;
+                case 'ai_assistant':
+                    titleEl.innerText = 'AI Assistant';
+                    contentEl.innerHTML = `<p>Have questions about your child's progress or coaching centre policies? Ask our AI assistant!</p><button class="btn btn-primary mt-2" onclick="openAIAssistant('parent')">Open AI Assistant</button>`;
+                    break;
+                default:
+                    titleEl.innerText = 'Coming Soon';
+                    contentEl.innerHTML = '<p>This feature is under construction.</p>';
+            }
+        };
+
+        // --- NEW FEATURE RENDER FUNCTIONS (TEACHER) ---
+        const renderStudentDetailsTable = () => {
+            const all = db.students[activeSection] || [];
+            const q = teacherSearchQuery.trim().toLowerCase();
+            const students = q ? all.filter(s => s.name.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q)) : all;
+            if (all.length === 0) return '<p>No students in this batch.</p>';
+            
+            const searchBar = `
+              <div class="flex flex-wrap items-center gap-3 mb-3">
+                <button onclick="showModal(addStudentModal)" class="btn btn-primary">
+                  <i class="fas fa-user-plus"></i> Add New Student
+                </button>
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-search text-slate-400"></i>
+                  <input id="teacherSearchInput" class="bg-slate-700 p-2 rounded-lg text-white" placeholder="Search by name or roll..." value="${teacherSearchQuery}">
+                </div>
+                ${q ? `<span class="text-slate-400 text-sm">Showing ${students.length} of ${all.length}</span>` : ''}
+              </div>
+            `;
+
+            setTimeout(() => {
+              const inp = document.getElementById('teacherSearchInput');
+              if (inp) inp.addEventListener('input', (e) => { teacherSearchQuery = e.target.value; showTeacherSection('details'); });
+            }, 0);
+
+            return `
+                ${searchBar}
+                <div class="overflow-x-auto bg-slate-800 p-4 rounded-lg">
+                    <table class="responsive-table">
+                        <thead>
+                            <tr>
+                                <th class="p-4 text-left">Name</th>
+                                <th class="p-4 text-left">Roll No</th>
+                                <th class="p-4 text-left">Parent's Phone</th>
+                                <th class="p-4 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${students.map(s => `
+                                <tr>
+                                    <td data-label="Name">${s.name}</td>
+                                    <td data-label="Roll No">${s.roll}</td>
+                                    <td data-label="Parent's Phone">${s.parentPhone}</td>
+                                    <td data-label="Actions" class="space-x-2">
+                                        <button onclick="openStudentDetailsEdit('${s.roll}')" class="btn btn-secondary text-sm"><i class="fas fa-user-edit"></i></button>
+                                        <button onclick="deleteStudent('${s.roll}')" class="btn btn-danger text-sm"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
+
+        const renderFeesTable = () => {
+            const students = db.students[activeSection] || [];
+            return `
+                <div class="overflow-x-auto bg-slate-800 p-4 rounded-lg">
+                    <div class="mb-4">
+                        <button onclick="sendBulkDueFeeReminders()" class="btn btn-whatsapp">
+                            <i class="fab fa-whatsapp"></i> Send Reminders to All Due
+                        </button>
+                    </div>
+                    <table class="responsive-table">
+                        <thead><tr><th>Name</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody>
+                        ${students.map(s => `
+                            <tr>
+                                <td data-label="Name">${s.name}</td>
+                                <td data-label="Status"><span class="px-2 py-1 rounded-full text-xs font-semibold ${s.fees === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${s.fees}</span></td>
+                                <td data-label="Actions" class="space-x-2">
+                                    <button onclick="updateFeeStatus('${s.roll}', 'paid')" class="btn btn-secondary text-sm">Paid</button>
+                                    <button onclick="updateFeeStatus('${s.roll}', 'due')" class="btn btn-secondary text-sm">Due</button>
+                                    ${s.fees === 'due' ? `<button onclick="sendWhatsAppOfficial('${s.parentPhone}', 'Reminder: Coaching Centre fees for ${s.name} are due.')" class="btn btn-whatsapp text-sm"><i class="fab fa-whatsapp"></i> Remind</button>` : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
+        
+        const renderMaterialsManager = () => {
+            const materials = db.materials[activeSection] || [];
+            return `
+                <div class="bg-slate-800 p-4 rounded-lg space-y-4">
+                    <div>
+                        <input id="materialTitle" class="w-full bg-slate-700 p-2 rounded-lg mb-2" placeholder="Material Title">
+                        <input id="materialLink" class="w-full bg-slate-700 p-2 rounded-lg mb-2" placeholder="OR Paste a Link">
+                        <div>
+                            <label for="materialFile" class="text-slate-400 block mb-1">OR Upload a File:</label>
+                            <input id="materialFile" type="file" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                        </div>
+                        <button onclick="addMaterial()" class="btn btn-primary mt-4">Add Material</button>
+                    </div>
+                    <h3 class="text-xl font-bold border-t border-slate-700 pt-4">Posted Materials</h3>
+                    <ul class="space-y-2">
+                        ${materials.length > 0 ? materials.map((m, i) => `
+                            <li class="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                                <a href="${m.link}" target="_blank" class="text-indigo-400 hover:underline">${m.title}</a>
+                                <button onclick="deleteMaterial(${i})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                            </li>
+                        `).join('') : '<p class="text-slate-500">No materials posted yet.</p>'}
+                    </ul>
+                </div>
+            `;
+        };
+
+        const renderTimetableManager = () => {
+            const timetable = db.timetables[activeSection] || [];
+            return `
+                <div class="bg-slate-800 p-4 rounded-lg space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <input id="ttDay" class="bg-slate-700 p-2 rounded-lg" placeholder="Day (e.g., Monday)">
+                        <input id="ttTime" class="bg-slate-700 p-2 rounded-lg" placeholder="Time (e.g., 9:00 AM)">
+                        <input id="ttSubject" class="bg-slate-700 p-2 rounded-lg" placeholder="Subject">
+                    </div>
+                    <button onclick="addTimetableEntry()" class="btn btn-primary">Add Entry</button>
+                    <h3 class="text-xl font-bold border-t border-slate-700 pt-4">Class Timetable</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <tbody>
+                            ${timetable.length > 0 ? timetable.map((t, i) => `
+                                <tr class="border-b border-slate-700">
+                                    <td class="p-2 font-bold">${t.day}</td>
+                                    <td class="p-2">${t.time}</td>
+                                    <td class="p-2">${t.subject}</td>
+                                    <td class="p-2 text-right"><button onclick="deleteTimetableEntry(${i})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button></td>
+                                </tr>
+                            `).join('') : '<tr><td class="p-2 text-slate-500">No timetable posted yet.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderAnnouncementsManager = () => {
+            const announcements = db.announcements.filter(a => a.section === activeSection || a.section === 'all');
+            return `
+                <div class="bg-slate-800 p-4 rounded-lg space-y-4">
+                    <div>
+                        <textarea id="announcementText" class="w-full bg-slate-700 p-2 rounded-lg" placeholder="Write your announcement..."></textarea>
+                        <button onclick="postAnnouncement()" class="btn btn-primary mt-2">Post to ${activeSection}</button>
+                        <button onclick="postAnnouncement('all')" class="btn btn-secondary mt-2">Post to All Batches</button>
+                    </div>
+                    <h3 class="text-xl font-bold border-t border-slate-700 pt-4">Recent Announcements</h3>
+                    <ul class="space-y-3">
+                        ${announcements.length > 0 ? announcements.map((a, i) => `
+                            <li class="bg-slate-700 p-3 rounded-lg">
+                                <p class="text-sm text-slate-400">To: ${a.section} on ${a.date}</p>
+                                <p>${a.text}</p>
+                            </li>
+                        `).join('') : '<p class="text-slate-500">No announcements posted yet.</p>'}
+                    </ul>
+                </div>
+            `;
+        };
+
+        // --- TEACHER ACTIONS (persisting) ---
+        const addStudent = () => {
+            const name = document.getElementById('addStudentName').value.trim();
+            const section = document.getElementById('addStudentSection').value;
+            const parentPhone = document.getElementById('addStudentParentPhone').value.trim();
+
+            if (!name || !section || !parentPhone) { showNotification("Please fill out all fields."); return; }
+
+            // Generate new roll
+            const lastStudent = db.students[section].slice(-1)[0];
+            const lastRollNum = lastStudent ? parseInt(lastStudent.roll.split('-')[1]) : 0;
+            const newRoll = `${section}-${String(lastRollNum + 1).padStart(2, '0')}`;
+
+            const newStudent = {
+                roll: newRoll,
+                name,
+                parentPhone,
+                key: `${name.replace(/\\s/g, '').slice(0, 4)}${section}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+                attendance: {},
+                fees: 'due',
+                performance: {}
+            };
+
+            db.students[section].push(newStudent);
+            saveDB();
+            hideModal(addStudentModal);
+            showTeacherSection('details');
+            showNotification(`Student ${name} added successfully with Roll No: ${newRoll}`);
+        };
+
+        const deleteStudent = (roll) => {
+            const found = findStudentByRoll(roll);
+            if (!found) return;
+            const { student, section } = found;
+
+            showConfirmation(`Remove ${student.name} (${student.roll}) permanently?`, () => {
+                const idx = db.students[section].findIndex(s => s.roll === roll);
+                if (idx > -1) {
+                    db.students[section].splice(idx, 1);
+                    saveDB();
+                    showTeacherSection('details');
+                    showNotification(`${student.name} has been removed.`);
+                }
+            });
+        };
+
+        const updateFeeStatus = (roll, status) => {
+            const student = db.students[activeSection].find(s => s.roll === roll);
+            if (student) {
+                student.fees = status;
+                saveDB();
+                showTeacherSection('fees');
+                showNotification(`Fee status for ${student.name} updated to ${status}.`);
+            }
+        };
+        
+        const addMaterial = async () => {
+            const title = document.getElementById('materialTitle').value.trim();
+            const fileInput = document.getElementById('materialFile');
+            const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+            const linkEl = document.getElementById('materialLink');
+            const link = linkEl ? linkEl.value.trim() : "";
+
+            if (!title || (!file && !link)) { showNotification("Please provide a title and either a file or a link."); return; }
+
+            let finalUrl = link;
+            try {
+                if (file) {
+                    const signResponse = await fetch(`/api/materials/sign-url`, {
+                        method: "POST", headers: { "Content-Type":"application/json" },
+                        body: JSON.stringify({ fileName: file.name })
+                    });
+                    const signData = await signResponse.json();
+                    if (!signData.ok) throw new Error(signData.error || "Signing failed");
+                    
+                    const uploadResponse = await fetch(signData.signedUrl, {
+                        method: "PUT", headers: { "Content-Type": file.type || "application/octet-stream" }, body: file
+                    });
+                    if (!uploadResponse.ok) throw new Error("Upload to storage failed");
+
+                    const publicUrlResponse = await fetch(`/api/materials/public-url`, {
+                        method:"POST", headers:{ "Content-Type":"application/json" },
+                        body: JSON.stringify({ path: signData.path })
+                    });
+                    const publicUrlData = await publicUrlResponse.json();
+                    if (!publicUrlData.ok) throw new Error(publicUrlData.error || "URL creation failed");
+                    finalUrl = publicUrlData.url;
+                }
+
+                if (!db.materials[activeSection]) db.materials[activeSection] = [];
+                db.materials[activeSection].push({ title, link: finalUrl });
+                saveDB();
+                showTeacherSection('materials');
+                showNotification("Material added successfully.");
+
+            } catch (e) {
+                console.error(e);
+                showNotification("Upload error: "+e.message);
+            }
+        };
+
+        const deleteMaterial = (index) => {
+            db.materials[activeSection].splice(index, 1);
+            saveDB();
+            showTeacherSection('materials');
+        };
+        
+        const addTimetableEntry = () => {
+            const day = document.getElementById('ttDay').value.trim();
+            const time = document.getElementById('ttTime').value.trim();
+            const subject = document.getElementById('ttSubject').value.trim();
+            if (day && time && subject) {
+                if (!db.timetables[activeSection]) db.timetables[activeSection] = [];
+                db.timetables[activeSection].push({ day, time, subject });
+                saveDB();
+                showTeacherSection('timetable');
+            } else {
+                showNotification("Please fill all timetable fields.");
+            }
+        };
+        const deleteTimetableEntry = (index) => {
+            db.timetables[activeSection].splice(index, 1);
+            saveDB();
+            showTeacherSection('timetable');
+        };
+
+        const postAnnouncement = (targetSection = activeSection) => {
+            const text = document.getElementById('announcementText').value.trim();
+            if (text) {
+                db.announcements.unshift({ text, section: targetSection, date: new Date().toLocaleDateString() });
+                saveDB();
+                showTeacherSection('announcements');
+                document.getElementById('announcementText').value = '';
+            } else {
+                showNotification("Please write an announcement.");
+            }
+        };
+
+        const sendBulkAbsentReminders = () => {
+            const teacherId = loggedInEntity.id;
+            const absentStudents = (db.students[activeSection] || []).filter(student => {
+                const recs = student.attendance[teacherId] || [];
+                const rec = recs.find(r => r.date === selectedAttendanceDate);
+                return rec && rec.status === 'A';
+            });
+
+            if (absentStudents.length === 0) {
+                showNotification(`No students are marked as absent on ${selectedAttendanceDate} for your class.`);
+                return;
+            }
+            absentStudents.forEach(student => {
+                const message = `Dear Parent, this is a reminder that your child ${student.name} was absent on ${selectedAttendanceDate} for ${loggedInEntity.subject} class.`;
+                sendWhatsAppOfficial(student.parentPhone, message);
+            });
+            showNotification(`Bulk reminders initiated for ${absentStudents.length} absent student(s).`);
+        };
+
+        const sendBulkDueFeeReminders = () => {
+            const dueStudents = db.students[activeSection].filter(student => student.fees === 'due');
+            if (dueStudents.length === 0) { showNotification("No students have due fees in this batch."); return; }
+            dueStudents.forEach(student => {
+                const message = `Reminder: Coaching Centre fees for ${student.name} are due.`;
+                sendWhatsAppOfficial(student.parentPhone, message);
+            });
+            showNotification(`Bulk fee reminders initiated for ${dueStudents.length} student(s).`);
+        };
+        
+        const openStudentDetailsEdit = (roll) => {
+            studentToEdit = findStudentByRoll(roll).student;
+            document.getElementById('editDetailName').value = studentToEdit.name;
+            document.getElementById('editDetailRoll').value = studentToEdit.roll;
+            document.getElementById('editDetailParentPhone').value = studentToEdit.parentPhone;
+            showModal(editStudentDetailsModal);
+        };
+        
+        const saveStudentDetails = () => {
+            if (!studentToEdit) return;
+            studentToEdit.name = document.getElementById('editDetailName').value.trim();
+            studentToEdit.parentPhone = document.getElementById('editDetailParentPhone').value.trim();
+            saveDB();
+            hideModal(editStudentDetailsModal);
+            showTeacherSection('details');
+            showNotification("Student details updated successfully!");
+        };
+
+
+        // --- STUDENT/PARENT SHARED RENDERS ---
+        const renderFeePayment = () => {
+            const upiId = "8302153208@yapl";
+            const upiLink = `upi://pay?pa=${upiId}&pn=Hardik%20Bhandari&cu=INR`;
+            // In production, replace with your public QR URL
+            const qrCodeUrl = "/images/1000021112.jpg";
+
+            return `
+                <div class="bg-slate-800 p-6 rounded-lg text-center">
+                    <h3 class="text-2xl font-bold mb-4">Pay Your Fees</h3>
+                    <p class="text-slate-400 mb-6">Scan the QR code with any UPI app or use the UPI ID below.</p>
+                    <img src="${qrCodeUrl}" alt="Scan to Pay UPI QR Code" class="mx-auto rounded-lg mb-4 border-4 border-slate-700 w-64 h-64 object-contain">
+                    <p class="text-lg"><strong>UPI ID:</strong> <span class="font-mono bg-slate-700 px-2 py-1 rounded">${upiId}</span></p>
+                    <a href="${upiLink}" class="btn btn-primary mt-4">
+                        <i class="fas fa-mobile-alt"></i> Pay with UPI App
+                    </a>
+                </div>
+            `;
+        };
+
+        const renderStudentMaterials = () => {
+            const materials = db.materials[activeSection] || [];
+            return `
+                <div class="bg-slate-800 p-4 rounded-lg">
+                    <ul class="space-y-2">
+                        ${materials.length > 0 ? materials.map(m => `
+                            <li class="bg-slate-700 p-3 rounded-lg">
+                                <a href="${m.link}" target="_blank" class="text-indigo-400 hover:underline flex items-center justify-between">
+                                    <span><i class="fas fa-link mr-2"></i>${m.title}</span>
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </li>
+                        `).join('') : '<p class="text-slate-500">No materials posted yet.</p>'}
+                    </ul>
+                </div>
+            `;
+        };
+
+        const renderStudentTimetable = () => {
+            const timetable = db.timetables[activeSection] || [];
+            return `
+                <div class="bg-slate-800 p-4 rounded-lg overflow-x-auto">
+                    <table class="w-full">
+                        <tbody>
+                        ${timetable.length > 0 ? timetable.map(t => `
+                            <tr class="border-b border-slate-700">
+                                <td class="p-2 font-bold">${t.day}</td>
+                                <td class="p-2">${t.time}</td>
+                                <td class="p-2">${t.subject}</td>
+                            </tr>
+                        `).join('') : '<tr><td class="p-2 text-slate-500">Timetable not available.</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        };
+        
+        const renderStudentAnnouncements = () => {
+            const announcements = db.announcements.filter(a => a.section === activeSection || a.section === 'all');
+            return `
+                <ul class="space-y-3">
+                    ${announcements.length > 0 ? announcements.map(a => `
+                        <li class="bg-slate-800 p-4 rounded-lg">
+                            <p class="text-sm text-slate-400">Posted on ${a.date}</p>
+                            <p class="mt-1">${a.text}</p>
+                        </li>
+                    `).join('') : '<p class="text-slate-500">No announcements.</p>'}
+                </ul>
+            `;
+        };
+
+        // --- EVENT LISTENERS & INITIALIZATION ---
+        const attachSidebarListeners = (userType) => {
+            document.querySelectorAll(`#${userType}Dashboard .sidebar-btn`).forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const sectionId = e.currentTarget.dataset.section;
+                    if (userType === 'teacher') showTeacherSection(sectionId);
+                    if (userType === 'student') showStudentSection(sectionId);
+                    if (userType === 'parent') showParentSection(sectionId);
+                });
+            });
+        };
+
+        const openAIAssistant = (userType) => {
+            loggedInUserType = userType;
+            const title = {
+                'teacher': 'AI Website Guide',
+                'student': 'AI Academic Tutor',
+                'parent': 'Parent AI Assistant'
+            }[userType];
+            document.getElementById('aiModalTitle').innerText = title;
+            aiChatWindow.innerHTML = `<div class="chat-bubble assistant">Hello! How can I help you today?</div>`;
+            showModal(aiAssistantModal);
+        };
+        
+        const openPerformanceReport = async (roll) => {
+            const student = findStudentByRoll(roll).student;
+            const reportContentEl = document.getElementById('reportContent');
+            reportContentEl.innerHTML = `<div class="text-center p-8"><i class="fas fa-spinner fa-spin text-4xl text-indigo-400"></i><p class="mt-4">Generating AI-powered report...</p></div>`;
+            showModal(reportModal);
+
+            const prompt = `Generate a detailed, encouraging, and constructive student performance report for ${student.name} (Roll: ${student.roll}) for a coaching centre. Their data is: Performance: ${JSON.stringify(student.performance)}, Attendance: ${JSON.stringify(student.attendance)}. Structure it with an introduction, subject-by-subject analysis (mentioning the teacher), strengths, areas for improvement with actionable advice, and a positive concluding summary.`;
+
+            try {
+                const response = await fetch('/api/ai/generate', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ prompt }) 
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "API Error");
+                }
+                const result = await response.json();
+                generatedReportText = result.text;
+                reportContentEl.innerHTML = `<pre class="whitespace-pre-wrap font-sans">${generatedReportText}</pre>`;
+            } catch (error) {
+                console.error("Report Generation Error:", error);
+                reportContentEl.innerHTML = `<p class="text-red-400">Could not generate AI report. Error: ${error.message}</p>`;
+                generatedReportText = "Report generation failed.";
+            }
+            
+            document.getElementById('sendReportWhatsAppBtn').onclick = () => sendWhatsAppOfficial(student.parentPhone, generatedReportText);
+            document.getElementById('downloadPdfBtn').onclick = () => downloadPdf('reportContent', `report-${student.roll}.pdf`);
+        };
+
+        document.getElementById('notificationCloseBtn').addEventListener('click', () => hideModal(notificationModal));
+        document.getElementById('reportCloseBtn').addEventListener('click', () => hideModal(reportModal));
+        document.getElementById('editDetailSaveBtn').addEventListener('click', saveStudentDetails);
+        document.getElementById('editDetailCancelBtn').addEventListener('click', () => hideModal(editStudentDetailsModal));
+    </script>
+</body>
+</html>
